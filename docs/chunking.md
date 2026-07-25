@@ -32,17 +32,28 @@ in the ablation table or it does not, and if it does not I say so.
 
 Split on heading boundaries, then pack sibling sections up to a token budget.
 
-- **Budget:** 512 tokens, 64 token overlap. Most embedding models handle 512 without
-  truncating, and a Spark doc subsection is usually smaller than that.
-- **Never split a fenced code block.** 337 of them. Half a code example retrieves badly
-  and reads worse. A code block over budget becomes its own chunk.
+- **Budget:** 512 tokens, 64 token overlap. The number follows the embedding model:
+  bge-small-en-v1.5 has a 512-token context window and truncates anything past it. The
+  day-1 plan set 512 before choosing a model, which was backwards; it happens to be right,
+  but for a reason now instead of a hope. Token counts come from the model's own WordPiece
+  tokenizer, not a word-count estimate.
+- **Reserve the heading path in the budget.** The path is repeated at the top of every
+  chunk, so it spends tokens. Content is packed into `512 - len(path)` rather than 512, so
+  the *measured* chunk stays under the model's window instead of overflowing once the
+  prefix is added.
 - **Carry the heading path.** Prefix each chunk with its ancestors, e.g.
   `Tuning Spark > Memory Tuning > Garbage Collection Tuning`. Without it, a chunk saying
   "increase this value" has no idea what "this" is.
 - **Split HTML tables on `<tr>` boundaries, repeating the header row.** With 21 tables and
-  355 rows in `configuration.md` alone, keeping tables whole is not an option. Splitting
-  mid-row is the worst case here, because a property name and its description end up in
-  different chunks. Repeating the header keeps each fragment self-describing.
+  355 rows in `configuration.md` alone, keeping tables whole is not an option. Repeating
+  the header keeps each fragment self-describing.
+- **Keep code blocks whole *until* they exceed the budget.** The day-1 rule was "never
+  split a fenced code block, let it be its own chunk". Profiling on day 2 broke that: 40
+  code blocks and 11 tables run past 512 tokens, the worst example log at 15,757. An
+  unsplit block does not stay whole — the model truncates it at 512 and silently drops the
+  rest, which is worse than a clean window split. So blocks that fit stay whole; oversized
+  ones get windowed on the coarsest boundary available (newline, then space, then, for a
+  handful of markdown table rows written as one 1,000-token line, character).
 
 ## What I expect to go wrong
 
