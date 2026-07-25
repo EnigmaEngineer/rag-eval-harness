@@ -1,8 +1,10 @@
-# day 1 only needs stdlib. pinned here so the versions are decided up front
-# rather than whatever pip resolves in week two.
+# pinned so versions are decided up front rather than whatever pip resolves later.
 requests==2.32.3
 
-# day 2 onward
-# sentence-transformers==3.0.1
-# faiss-cpu==1.8.0
+# day 2: chunking + dense retrieval.
+# sentence-transformers pulls torch (~200 MB), which is the bulk of a fresh install.
+sentence-transformers==3.0.1
+faiss-cpu==1.8.0
+
+# day 3 onward
 # rank-bm25==0.2.2
