@@ -3,6 +3,9 @@ requests==2.32.3
 
 # day 2: chunking + dense retrieval.
 # sentence-transformers pulls torch (~200 MB), which is the bulk of a fresh install.
+# transformers is imported directly in ingest/chunk.py for the wordpiece counter.
+# it arrives via sentence-transformers anyway, but a direct import is a direct dependency.
+transformers==4.44.2
 sentence-transformers==3.0.1
 faiss-cpu==1.8.0
 
