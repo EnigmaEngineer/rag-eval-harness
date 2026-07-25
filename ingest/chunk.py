@@ -162,7 +162,7 @@ def text_units(block):
         para = para.strip()
         if not para:
             continue
-        # list items and table-ish lines stay whole; prose gets sentence-split
+        # list items and table-ish lines stay whole. prose gets sentence-split
         if para.startswith(("-", "*", "|", ">")) or para[0].isdigit() and para[1:2] == ".":
             parts.append(para)
         else:
@@ -212,8 +212,8 @@ def hard_split(unit, count, budget, overlap):
     The day-1 plan was "never split a code block, let it be its own chunk". Profiling on
     day 2 killed that: 40 code blocks and 11 tables run past 512 tokens, the worst at
     15,757. bge-small truncates at 512, so an unsplit block would embed its first few
-    hundred tokens and silently drop the rest — worse than a clean window split. So blocks
-    that fit stay whole; only the ones that would be truncated get windowed, on the
+    hundred tokens and silently drop the rest. Worse than a clean window split. So blocks
+    that fit stay whole. only the ones that would be truncated get windowed, on the
     coarsest boundary that works: newline, then space, then character. The character floor
     exists because a few markdown table rows are written as one 1,000-token physical line
     with no other break to grab.
@@ -234,7 +234,7 @@ def _window(text, count, budget, overlap, seps=("\n", " ", "")):
         for p in pieces:
             c = count(p) or 1
             if c > budget and sep != "":
-                # a single piece is still too big; flush and recurse on a finer separator
+                # a single piece is still too big. flush and recurse on a finer separator
                 if cur:
                     out.append(join.join(cur))
                     cur, cost = [], 0
@@ -264,12 +264,12 @@ def pack(units, path, count, budget, overlap):
     The heading path is repeated at the top of every chunk, so it spends part of the
     budget. We reserve that up front and pack content into the room that is left, which is
     why the measured chunk stays under 512 instead of blowing past it once the prefix is
-    added. Overlap is applied only across text units — carrying half a code block or a
+    added. Overlap is applied only across text units. Carrying half a code block or a
     stray table row into the next chunk hurts more than the boundary it protects.
     """
     prefix = path + "\n" if path else ""
     prefix_cost = count(prefix)
-    # if a heading path is so long it eats the budget, keep a floor so content still fits;
+    # if a heading path is so long it eats the budget, keep a floor so content still fits.
     # those chunks trip the oversized flag and get counted honestly.
     room = max(budget - prefix_cost, 96)
     tail_budget = min(overlap, room // 4)

@@ -46,7 +46,7 @@ Chunks are embedded with `BAAI/bge-small-en-v1.5` (384-dim, 512-token window) in
 flat inner-product index over L2-normalized vectors, which makes the search exact cosine
 similarity. Flat is deliberate: at a few thousand chunks a linear scan is fast, and an
 approximate index would only add a recall/latency knob to tune before there is a metric to
-tune it against. The query gets bge's instruction prefix; passages do not. See
+tune it against. The query gets bge's instruction prefix. Passages do not. See
 `docs/chunking.md` for the chunking decisions.
 
 ## Known limitations

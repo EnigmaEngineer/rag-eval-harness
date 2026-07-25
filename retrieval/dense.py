@@ -11,7 +11,7 @@ chunk budget follows from its context window rather than being picked first and 
 model fits it.
 
 bge wants an instruction prefixed to the *query* only, not the passages. Skipping it on
-queries measurably hurts recall, so the prefix lives here, once, where it cannot be
+queries measurably hurts recall. the prefix lives here, once, where it cannot be
 forgotten.
 """
 
@@ -49,7 +49,7 @@ PROGRESS_PATH = SCRATCH / "build_progress.json"
 
 def get_model():
     import torch
-    # the sandbox gives us two cores; without this torch grabs one and CPU encoding
+    # the sandbox gives us two cores. without this torch grabs one and CPU encoding
     # roughly halves. Harmless on a bigger box.
     torch.set_num_threads(2)
     from sentence_transformers import SentenceTransformer
@@ -61,11 +61,11 @@ def build(max_seconds=35, batch_size=32):
 
     CPU encoding runs at ~9 chunks/s here and the corpus is ~3.2k chunks, which is far
     past the sandbox's per-call time limit. So embeddings are written to a memmap as they
-    are produced and progress is checkpointed; each call does a slice and stops. Call it
+    are produced and progress is checkpointed. each call does a slice and stops. Call it
     until it reports done, then it assembles the index. Returns True once complete.
 
     normalize + IndexFlatIP == exact cosine. Flat is the right call at a few thousand
-    vectors; an approximate index would add a recall/latency knob to tune before there is
+    vectors. an approximate index would add a recall/latency knob to tune before there is
     a metric to tune it against.
     """
     import faiss

@@ -16,9 +16,9 @@ JSONL, one question per line. `golden.jsonl`.
 
 ## Difficulty means something specific here
 
-- **easy** — answer sits in one section, question uses the same words the doc uses
-- **medium** — answer is in one doc but the question uses different vocabulary
-- **hard** — answer needs two or more docs, or the obvious keyword match is the wrong doc
+- **easy**. answer sits in one section. question uses the same words the doc uses
+- **medium**. answer is in one doc but the question uses different vocabulary
+- **hard**. answer needs two or more docs, or the obvious keyword match is the wrong doc
 
 Hard questions are the point. A retriever that only handles `easy` scores well and helps
 nobody.

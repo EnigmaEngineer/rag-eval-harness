@@ -34,7 +34,7 @@ Split on heading boundaries, then pack sibling sections up to a token budget.
 
 - **Budget:** 512 tokens, 64 token overlap. The number follows the embedding model:
   bge-small-en-v1.5 has a 512-token context window and truncates anything past it. The
-  day-1 plan set 512 before choosing a model, which was backwards; it happens to be right,
+  day-1 plan set 512 before choosing a model, which was backwards. It happens to be right,
   but for a reason now instead of a hope. Token counts come from the model's own WordPiece
   tokenizer, not a word-count estimate.
 - **Reserve the heading path in the budget.** The path is repeated at the top of every
@@ -50,9 +50,9 @@ Split on heading boundaries, then pack sibling sections up to a token budget.
 - **Keep code blocks whole *until* they exceed the budget.** The day-1 rule was "never
   split a fenced code block, let it be its own chunk". Profiling on day 2 broke that: 40
   code blocks and 11 tables run past 512 tokens, the worst example log at 15,757. An
-  unsplit block does not stay whole — the model truncates it at 512 and silently drops the
-  rest, which is worse than a clean window split. So blocks that fit stay whole; oversized
-  ones get windowed on the coarsest boundary available (newline, then space, then, for a
+  unsplit block does not stay whole. The model truncates it at 512 and silently drops the
+  rest, which is worse than a clean window split. So blocks that fit stay whole. Oversized
+  ones get windowed on the coarsest boundary available. Newline first, then space, then for a
   handful of markdown table rows written as one 1,000-token line, character).
 
 ## What I expect to go wrong
