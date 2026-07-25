@@ -1,0 +1,8 @@
+# day 1 only needs stdlib. pinned here so the versions are decided up front
+# rather than whatever pip resolves in week two.
+requests==2.32.3
+
+# day 2 onward
+# sentence-transformers==3.0.1
+# faiss-cpu==1.8.0
+# rank-bm25==0.2.2
