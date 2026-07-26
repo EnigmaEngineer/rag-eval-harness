@@ -9,5 +9,6 @@ transformers==4.44.2
 sentence-transformers==3.0.1
 faiss-cpu==1.8.0
 
-# day 3 onward
-# rank-bm25==0.2.2
+# day 3: BM25 is hand-rolled in retrieval/sparse.py (no rank-bm25). It is an inverted index
+# and one scoring formula, and keeping the tokenizer and k1/b/idf under test is worth more
+# here than the dependency saves.
