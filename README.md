@@ -29,18 +29,6 @@ in `docs/corpus.md`.
 Nothing from the corpus is committed here. `fetch_corpus.py` pulls it at build time and
 writes a manifest with a SHA-256 per file so runs stay comparable.
 
-## Status
-
-Day 3 of 7.
-
-- [x] Day 1: corpus selection and fetch, chunking strategy, eval-set format
-- [x] Day 2: structure-aware chunker, dense index
-- [x] Day 3: BM25 index, reciprocal rank fusion
-- [ ] Day 4: cross-encoder reranking, per-stage latency
-- [ ] Day 5: recall@k, MRR, faithfulness scoring
-- [ ] Day 6: ablation runs, CI regression gate
-- [ ] Day 7: results and failure analysis
-
 ## Retrieval
 
 Chunks are embedded with `BAAI/bge-small-en-v1.5` (384-dim, 512-token window) into a FAISS
