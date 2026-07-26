@@ -44,13 +44,13 @@ rankings are combined with reciprocal rank fusion. RRF keeps only the ranks and 
 raw scores away, which sidesteps having to normalize cosine and BM25 onto a shared scale.
 The full argument is in `docs/fusion.md`.
 
-## What day 3 measured, including a result that went the wrong way
+## A hybrid result that went the wrong way
 
-The plan said BM25 plus fusion would close the lexical gap that dense retrieval leaves. Half
-of that held. The other half did not. The eval caught it.
+The expectation was that BM25 plus fusion would close the lexical gap that dense retrieval
+leaves. Half of that held. The other half did not. The eval caught it.
 
 The proxy is coarse: for each of the 10 golden questions, does an expected source doc land
-in the top 5. Real recall@k and MRR are day 5. Numbers measured on this machine today.
+in the top 5. Real recall@k and MRR come next. Numbers measured on this machine.
 
 | retriever | source doc in top-5 |
 |---|---|
@@ -72,19 +72,19 @@ in the abstract, showing up on a real query.
 This is not fixed by tuning the fusion. Tuning it to pass one question on a 10-question
 proxy would be gaming the number. The right read is that fusion widened the candidate pool.
 The correct chunk is now in the fused top-50, which it was not in dense alone. Pulling it into
-the top 5 is the cross-encoder reranker's job on day 4. Whether the reranker actually recovers
-q002 is the open question day 4 has to answer, not assume.
+the top 5 is the cross-encoder reranker's job, which comes next. Whether the reranker actually
+recovers q002 is the open question, not an assumption.
 
 ## Known limitations
 
 The golden set has 10 questions. That is enough to catch gross breakage and not enough to
-trust a two-point recall difference. Target is 60 by day 5, added when a real retrieval
-failure turns up that no existing question covers.
+trust a two-point recall difference. Target is 60, added when a real retrieval failure turns
+up that no existing question covers.
 
 The chunker special-cases HTML tables but not markdown pipe tables. A few markdown rows are
 written as one very long physical line and only survive because the oversized-block
 windower falls back to splitting on spaces. That is a safety net, not real markdown-table
-handling. It is on the list for a later day.
+handling. It is on the list.
 
 BM25 does no stemming. "partition" and "partitions" are distinct terms. It did not cost a
 golden hit on this corpus, but a query using the singular against a doc that only uses the
@@ -92,4 +92,4 @@ plural would miss. A real stemmer is a dependency and a source of surprising mat
 is deferred rather than added blind.
 
 The three smoke checks report source-doc overlap at top-5, not recall@k on gold chunks. They
-are a sanity proxy for spotting where the retrievers disagree. The real metrics are day 5.
+are a sanity proxy for spotting where the retrievers disagree. The real metrics come next.
