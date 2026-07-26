@@ -35,9 +35,9 @@ DEFAULT_DEPTH = 50
 def fuse(ranked_lists, k_rrf=RRF_K, top_k=5):
     """Combine several ranked lists of ids into one. Each list is ids best-first.
 
-    score(id) = sum over lists of 1 / (k_rrf + rank), rank starting at 1. Returns
-    [(id, score), ...] best-first, capped at top_k. An id missing from a list simply
-    contributes nothing from that list, which is the whole point: no score to normalise.
+    score(id) = sum over lists of 1 / (k_rrf + rank), rank starting at 1. Returns a list of
+    (id, score) pairs best-first and capped at top_k. An id missing from a list contributes
+    nothing from that list, which is the whole point. There is no score to normalise.
     """
     scores = defaultdict(float)
     for ids in ranked_lists:

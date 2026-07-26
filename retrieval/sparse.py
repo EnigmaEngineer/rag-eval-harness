@@ -11,7 +11,7 @@ under test, which matters more for a portfolio piece than saving eighty lines. T
 design decision is the tokenizer, and that is the thing worth being able to defend.
 
 The tokenizer lowercases and splits on non-alphanumerics, so a config key like
-`spark.sql.shuffle.partitions` becomes spark, sql, shuffle, partitions. That is deliberate.
+`spark.sql.shuffle.partitions` splits into spark / sql / shuffle / partitions. That is deliberate.
 The dense index misses q002 because the question says "tiny tasks after a shuffle" and never
 says "partition", while the doc keeps the term inside the dotted key. Splitting the key
 exposes `partitions` as a matchable term. BM25 is here precisely to close that lexical gap.
@@ -38,7 +38,8 @@ K1 = 1.5
 B = 0.75
 
 # A short, boring stopword list. Long lists start dropping terms that carry meaning in a
-# technical corpus ("no", "not", "off", "on" all matter in config docs), so this stays small.
+# technical corpus. Words like "no" and "not" and "off" and "on" all matter in config docs.
+# So this stays small.
 STOP = {
     "the", "a", "an", "of", "to", "in", "is", "are", "and", "or", "for", "on",
     "with", "as", "by", "at", "be", "this", "that", "it", "from", "how", "do",

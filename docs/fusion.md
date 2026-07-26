@@ -38,7 +38,7 @@ nothing left on a raw scale. The two rankers become directly comparable by const
 
 `k` damps the head of each list so one ranker's rank-1 cannot swamp everything below it. Small
 `k` trusts the top ranks hard. Large `k` flattens the contribution curve toward uniform. 60 is
-the value from the original paper (Cormack, Clarke, Buettcher, 2009) and the common default.
+the value from the original RRF paper (Cormack et al. 2009) and the common default.
 It is a parameter in `fuse.py`, so the day-5 harness can sweep it if the metrics ask for it,
 rather than it being baked in.
 
