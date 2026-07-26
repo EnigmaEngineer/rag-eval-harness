@@ -18,7 +18,7 @@ JSONL, one question per line. `golden.jsonl`.
 
 - **easy**. answer sits in one section. question uses the same words the doc uses
 - **medium**. answer is in one doc but the question uses different vocabulary
-- **hard**. answer needs two or more docs, or the obvious keyword match is the wrong doc
+- **hard**. answer needs two or more docs. Or the obvious keyword match is the wrong doc
 
 Hard questions are the point. A retriever that only handles `easy` scores well and helps
 nobody.
@@ -29,7 +29,7 @@ nobody.
 python -m evalset.validate
 ```
 
-Checks the schema, that ids are unique, and that every `source_docs` entry exists in the
+Checks the schema, that ids are unique and that every `source_docs` entry exists in the
 fetched corpus. Run it after fetching.
 
 ## Growing the set

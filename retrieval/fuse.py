@@ -5,7 +5,7 @@
 
 Reciprocal rank fusion, not weighted score fusion. The reasoning is in docs/fusion.md and
 matters enough to summarise here: dense cosine and BM25 scores live on different, unbounded
-scales, so combining the raw numbers means normalising them first, and every normalisation
+scales, so combining the raw numbers means normalising them first. Every normalisation
 (min-max, z-score) is set by the batch it sees and shifts under you. RRF throws the scores
 away and keeps only the ranks. A term appearing at rank 3 in either list is worth the same
 no matter what its raw score was. That removes the one knob that would otherwise need tuning

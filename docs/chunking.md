@@ -26,7 +26,7 @@ Both markup styles appear across the corpus, so the chunker has to handle each.
 ## The claim
 
 Structure-aware chunking beats fixed-size chunking on this corpus. Day 6 either shows that
-in the ablation table or it does not, and if it does not I say so.
+in the ablation table or it does not. If it does not I say so.
 
 ## Approach
 
@@ -52,8 +52,8 @@ Split on heading boundaries, then pack sibling sections up to a token budget.
   code blocks and 11 tables run past 512 tokens, the worst example log at 15,757. An
   unsplit block does not stay whole. The model truncates it at 512 and silently drops the
   rest, which is worse than a clean window split. So blocks that fit stay whole. Oversized
-  ones get windowed on the coarsest boundary available. Newline first, then space, then for a
-  handful of markdown table rows written as one 1,000-token line, character).
+  ones get windowed on the coarsest boundary available. Newline first, then space. Character
+  only for a handful of markdown table rows written as one 1,000-token line.
 
 ## What I expect to go wrong
 

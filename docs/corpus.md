@@ -14,7 +14,7 @@ retriever's fault or the label's. I have worked with Spark for three years, so w
 retrieval returns the wrong chunk I know it is wrong without checking anything.
 
 **It has real structure.** Nested headings, code blocks, config tables. Chunking that
-respects structure should beat fixed-size chunking here, and the difference should be
+respects structure should beat fixed-size chunking here. The difference should be
 measurable rather than asserted. A corpus of blog posts would not test that.
 
 **It has genuinely hard retrieval cases.** `configuration.md` is one enormous table of
@@ -23,7 +23,7 @@ retriever has to pick the right one. Both are the kind of thing that breaks naiv
 
 ## Why pinned to a tag
 
-Spark docs change between releases. If the corpus moves, eval scores move, and I would
+Spark docs change between releases. If the corpus moves, eval scores move. Then I would
 not know whether I improved retrieval or the source text shifted underneath me. The tag
 makes results comparable across weeks.
 
@@ -36,5 +36,5 @@ this repo carries no third-party content.
 ## Reproducibility
 
 `ingest/fetch_corpus.py` writes `data/manifest.json` with a SHA-256 for every file plus
-the ref it fetched. Two people running the script get byte-identical corpora, or the
+the ref it fetched. Two people running the script get byte-identical corpora. Otherwise the
 manifest tells them why not.

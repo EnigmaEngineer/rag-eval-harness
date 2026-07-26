@@ -2,7 +2,7 @@
 
 Uses the approximate counter so these run without downloading a model. They check the
 invariants that actually matter for retrieval: chunks stay near budget, oversized blocks
-get split instead of silently truncated, table fragments keep their header, and the
+get split instead of silently truncated, table fragments keep their header and the
 heading path rides along on every chunk.
 
     python -m tests.test_chunk

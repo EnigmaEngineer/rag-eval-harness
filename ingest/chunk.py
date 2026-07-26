@@ -3,7 +3,7 @@
 The plan in docs/chunking.md, made real. Three things drive the design and they all
 come from profiling the corpus on day 1, not from a blog post:
 
-  - Spark docs mix markdown headings, fenced code, and HTML tables in the same file.
+  - Spark docs mix markdown headings, fenced code and HTML tables in the same file.
   - configuration.md alone is 21 HTML tables / 355 rows. Keeping tables whole is not an
     option, so tables are split on <tr> boundaries with the header row repeated.
   - A chunk that says "increase this value" is useless without its heading path, so every
@@ -49,7 +49,7 @@ def bge_counter():
     tok = AutoTokenizer.from_pretrained(MODEL)
 
     def count(text):
-        # no special tokens: we are budgeting content, and the two [CLS]/[SEP] tokens are
+        # no special tokens: we are budgeting content. The two [CLS]/[SEP] tokens are
         # a fixed overhead the model adds regardless of how we chunk.
         return len(tok(text, add_special_tokens=False)["input_ids"])
 
@@ -85,10 +85,10 @@ def read_front_matter(lines):
 
 
 def segment(text):
-    """Split a document into ordered blocks: heading, code, table, or text.
+    """Split a document into ordered blocks: heading, code, table or text.
 
     Kept deliberately linear. A real markdown+HTML parser would be more correct but the
-    corpus is regular enough that a state machine over lines is enough, and it is far
+    corpus is regular enough that a state machine over lines is enough. It is also far
     easier to reason about when a chunk comes out wrong.
     """
     lines = text.splitlines()

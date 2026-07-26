@@ -3,7 +3,7 @@
 The scoring is pure and rank-based, so it tests without a model or an index. These check
 the properties the fusion actually relies on: agreement across lists beats a single strong
 placing, only ranks matter not the raw scores that produced them, a missing id costs
-nothing, and the constant k behaves the way the reasoning in docs/fusion.md claims.
+nothing and the constant k behaves the way the reasoning in docs/fusion.md claims.
 
     python -m tests.test_fuse
 """
@@ -35,7 +35,7 @@ def test_only_rank_matters_not_score():
 
 
 def test_missing_id_contributes_nothing():
-    # An id in only one list gets credit from that list alone, and never a penalty for
+    # An id in only one list gets credit from that list alone and never a penalty for
     # being absent from the other.
     ranked = dict(fuse([["p", "q"], ["q"]], top_k=5))
     # q: 1/(60+2) from dense + 1/(60+1) from bm25. p: 1/(60+1) from dense only.

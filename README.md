@@ -17,7 +17,7 @@ python -m retrieval.fuse smoke    # dense vs bm25 vs fused, side by side
 
 Most RAG projects show a chat box and a demo question. None of them tell you whether
 retrieval actually works, so there is no way to know if a change made things better or
-worse. This one measures recall@k, MRR and faithfulness on a golden set, and fails CI when
+worse. This one measures recall@k, MRR and faithfulness on a golden set. It fails CI when
 they regress.
 
 ## Corpus
@@ -45,7 +45,7 @@ Day 3 of 7.
 
 Chunks are embedded with `BAAI/bge-small-en-v1.5` (384-dim, 512-token window) into a FAISS
 flat inner-product index over L2-normalized vectors, which makes the search exact cosine
-similarity. Flat is deliberate: at a few thousand chunks a linear scan is fast, and an
+similarity. Flat is deliberate. At a few thousand chunks a linear scan is fast. An
 approximate index would only add a recall/latency knob to tune before there is a metric to
 tune it against. The query gets bge's instruction prefix. Passages do not. See
 `docs/chunking.md` for the chunking decisions.
@@ -59,7 +59,7 @@ The full argument is in `docs/fusion.md`.
 ## What day 3 measured, including a result that went the wrong way
 
 The plan said BM25 plus fusion would close the lexical gap that dense retrieval leaves. Half
-of that held. The other half did not, and the eval caught it.
+of that held. The other half did not. The eval caught it.
 
 The proxy is coarse: for each of the 10 golden questions, does an expected source doc land
 in the top 5. Real recall@k and MRR are day 5. Numbers measured on this machine today.
@@ -76,12 +76,12 @@ after a shuffle." The doc keeps the answer inside the config key
 embedding. BM25 catches it at rank 3, exactly the lexical hit it exists for.
 
 Then fusion loses it again. Measured on q002: the correct doc is BM25 rank 3 and dense rank
-23, and after RRF it sits at fused rank 7, one place outside the top 5. RRF rewards agreement
+23. After RRF it sits at fused rank 7. One place outside the top 5. RRF rewards agreement
 across both rankers, so a cluster of docs that both retrievers rank moderately well outscores
 a doc only BM25 is sure about. That is RRF's consensus bias, the cost `docs/fusion.md` flags
 in the abstract, showing up on a real query.
 
-This is not fixed by tuning the fusion, and tuning it to pass one question on a 10-question
+This is not fixed by tuning the fusion. Tuning it to pass one question on a 10-question
 proxy would be gaming the number. The right read is that fusion widened the candidate pool.
 The correct chunk is now in the fused top-50, which it was not in dense alone. Pulling it into
 the top 5 is the cross-encoder reranker's job on day 4. Whether the reranker actually recovers
@@ -96,7 +96,7 @@ failure turns up that no existing question covers.
 The chunker special-cases HTML tables but not markdown pipe tables. A few markdown rows are
 written as one very long physical line and only survive because the oversized-block
 windower falls back to splitting on spaces. That is a safety net, not real markdown-table
-handling, and it is on the list for a later day.
+handling. It is on the list for a later day.
 
 BM25 does no stemming. "partition" and "partitions" are distinct terms. It did not cost a
 golden hit on this corpus, but a query using the singular against a doc that only uses the

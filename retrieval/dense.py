@@ -6,7 +6,7 @@
     python -m retrieval.dense smoke        # run the golden questions as a sanity check
 
 Model choice (resolves the day-1 open thread): bge-small-en-v1.5. 384-dim, 512-token
-context, retrieval-tuned, and small enough to embed the whole corpus on 2 CPUs. The 512
+context, retrieval-tuned and small enough to embed the whole corpus on 2 CPUs. The 512
 chunk budget follows from its context window rather than being picked first and hoping a
 model fits it.
 

@@ -6,9 +6,9 @@
     python -m retrieval.sparse smoke       # the golden questions as a sanity check
 
 Why hand-rolled instead of rank-bm25. BM25 is an inverted index and one scoring formula.
-Writing it here keeps the tokenizer, the idf variant, and the k1/b choice all visible and
+Writing it here keeps the tokenizer, the idf variant and the k1/b choice all visible and
 under test, which matters more for a portfolio piece than saving eighty lines. The one real
-design decision is the tokenizer, and that is the thing worth being able to defend.
+design decision is the tokenizer. That is the thing worth being able to defend.
 
 The tokenizer lowercases and splits on non-alphanumerics, so a config key like
 `spark.sql.shuffle.partitions` splits into spark / sql / shuffle / partitions. That is deliberate.

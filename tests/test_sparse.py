@@ -2,7 +2,7 @@
 
 These build a tiny in-memory index from a handful of fake chunks, so they run with no
 corpus and no model. They check the parts that would silently degrade retrieval if wrong:
-the tokenizer splits dotted config keys, term frequency saturates, and a rarer term
+the tokenizer splits dotted config keys, term frequency saturates and a rarer term
 outweighs a common one.
 
     python -m tests.test_sparse
@@ -59,8 +59,8 @@ def test_rarer_term_scores_higher():
 
 
 def test_term_frequency_saturates():
-    # BM25 tf is sublinear. Ten occurrences must not score ten times one occurrence, or a
-    # keyword-stuffed chunk would beat a genuinely relevant one.
+    # BM25 tf is sublinear. Ten occurrences must not score ten times one occurrence.
+    # Otherwise a keyword-stuffed chunk would beat a genuinely relevant one.
     idx = make_index(["alpha " * 10 + "filler " * 90, "alpha " + "filler " * 99])
     hits = {h["id"]: h["score"] for h in idx.search("alpha", k=2)}
     assert hits["c0"] < 10 * hits["c1"], "tf should saturate, not scale linearly"
