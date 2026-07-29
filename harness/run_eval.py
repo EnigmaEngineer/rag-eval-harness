@@ -114,20 +114,30 @@ class Retrievers:
         return self._ce
 
 
-def prime(systems, rv):
-    """Load every heavy object the run will need, before any timer starts.
+WARMUP_QUERY = "warm up the kernels, this text is never scored"
 
-    This is not an optimisation. Without it the first question of a run pays the model load
-    inside its own timing block. It showed up on the first pass here as 12049 ms for the first
-    dense query against 19 ms for the other nine. That number was not a slow query. It was a
-    bge model load, and averaged into a mean it would have made dense look 60x its real cost.
+
+def prime(systems, rv):
+    """Load every heavy object the run will need and push one query through it, before any
+    timer starts.
+
+    Constructing the model is not enough, and that cost two separate measurements to learn.
+    Day 4 timed a bge model load inside the first question and read 12049 ms against 19 ms
+    for the other nine. Loading moved out and the column looked right. Then the day-6 rebuild
+    on a newer torch read 1606 ms for the first dense question and 19 ms for the rest, with
+    the model already loaded. Torch allocates buffers and picks kernels on the first forward
+    pass, not at construction. So the fix is a real forward pass, not a constructor call.
+
+    A mean over ten questions hides this badly. One 1.6 second outlier drags a 19 ms system
+    to 178 ms and the table then reports a number no query ever took.
     """
     if {"dense", "fused", "rerank"} & set(systems):
-        rv.dense()
+        dense_mod, index, meta, model = rv.dense()
+        dense_mod.search(WARMUP_QUERY, k=1, model=model, index=index, meta=meta)
     if {"bm25", "fused", "rerank"} & set(systems):
-        rv.bm25()
+        rv.bm25().search(WARMUP_QUERY, k=1)
     if "rerank" in systems:
-        rv.cross_encoder()
+        rv.cross_encoder().predict([(WARMUP_QUERY, "a passage to warm the cross encoder")])
 
 
 def run_one(system, query, rv, texts):
@@ -160,19 +170,19 @@ def run_one(system, query, rv, texts):
     return [h["id"] for h in hits], elapsed
 
 
-def already_done():
-    if not RESULTS.exists():
+def already_done(results):
+    if not results.exists():
         return set()
-    return {(r["system"], r["qid"]) for r in load_jsonl(RESULTS)}
+    return {(r["system"], r["qid"]) for r in load_jsonl(results)}
 
 
-def append_result(row):
-    RESULTS.parent.mkdir(parents=True, exist_ok=True)
-    with RESULTS.open("a", encoding="utf-8") as fh:
+def append_result(row, results):
+    results.parent.mkdir(parents=True, exist_ok=True)
+    with results.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(row) + "\n")
 
 
-def run(systems, qslice=None, budget=38.0):
+def run(systems, qslice=None, budget=38.0, results=RESULTS):
     """Retrieve and record. Stops cleanly when the time budget is nearly spent so a partial
     run leaves a valid results file instead of a truncated line."""
     questions = load_questions()
@@ -183,7 +193,7 @@ def run(systems, qslice=None, budget=38.0):
     texts = load_texts()
     rv = Retrievers()
     prime(systems, rv)
-    done = already_done()
+    done = already_done(results)
     started = time.perf_counter()
     written = 0
 
@@ -206,7 +216,7 @@ def run(systems, qslice=None, budget=38.0):
                     [texts[i] for i in ranked[:5] if i in texts], q["required"]),
                 "required": q["required"],
             }
-            append_result(row)
+            append_result(row, results)
             written += 1
             rr = metrics.reciprocal_rank(ranked, q["gold_chunks"])
             print(f"  {system:7} {q['id']}  rr {rr:.3f}  "
@@ -237,8 +247,8 @@ def summarise(rows):
     return out
 
 
-def report():
-    rows = load_jsonl(RESULTS)
+def report(results=RESULTS):
+    rows = load_jsonl(results)
     stats = summarise(rows)
     n_q = len(load_questions())
 
@@ -279,7 +289,12 @@ def main():
     rp.add_argument("--systems", default=",".join(SYSTEMS))
     rp.add_argument("--slice", default="", help="question range, e.g. 0:3")
     rp.add_argument("--budget", type=float, default=38.0)
-    sub.add_parser("report")
+    # CI must not resume from the results file committed in the repo. If it did, every pair
+    # would already be present, the run would write nothing and the gate would pass without
+    # measuring anything. So CI points --out at its own file.
+    rp.add_argument("--out", default=str(RESULTS), help="results file to append to")
+    pp = sub.add_parser("report")
+    pp.add_argument("--results", default=str(RESULTS))
     args = ap.parse_args()
 
     if args.cmd == "run":
@@ -287,9 +302,9 @@ def main():
         unknown = set(systems) - set(SYSTEMS)
         if unknown:
             raise SystemExit(f"unknown systems {sorted(unknown)}, pick from {list(SYSTEMS)}")
-        run(systems, parse_slice(args.slice), budget=args.budget)
+        run(systems, parse_slice(args.slice), budget=args.budget, results=Path(args.out))
     elif args.cmd == "report":
-        report()
+        report(Path(args.results))
 
 
 if __name__ == "__main__":
