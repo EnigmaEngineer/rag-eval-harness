@@ -1,0 +1,73 @@
+name: eval
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      systems:
+        description: "systems to gate on. dense, fused and rerank need the embedding build"
+        default: "bm25"
+
+jobs:
+  # Unit tests are cheap and gate everything. They need no corpus and no model.
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: pip install -r requirements.txt
+      # The suites are plain scripts with their own runner, not pytest. `|| exit 1` is
+      # explicit on purpose. set -e inside a for loop is a thing people misremember, and a
+      # test job that swallows a failure is worse than no test job.
+      - name: unit tests
+        run: |
+          for t in tests/test_*.py; do
+            echo "== $t"
+            python -m "tests.$(basename "$t" .py)" || exit 1
+          done
+
+  # Retrieval regression gate. BM25 only on every push, deliberately.
+  #
+  # Embedding 3,212 chunks with bge-small takes about 17 minutes on two cores, which is what
+  # a hosted runner gives you. Paying that on every pull request to gate a ten-question eval
+  # is not a trade worth making. BM25 builds from chunks.jsonl in under a second and it is
+  # the system the day-5 ablation showed is hardest to beat, so it is the one worth
+  # protecting on every change. The dense side is a manual dispatch.
+  retrieval-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: pip install -r requirements.txt
+
+      # The corpus is not in the repo. It is 244 files of Apache Spark docs pinned to a tag,
+      # so it is fetched and hash-checked against data/manifest.json instead of vendored.
+      - name: fetch corpus at the pinned ref
+        run: python -m ingest.fetch_corpus
+
+      - name: chunk
+        run: python -m ingest.chunk
+
+      - name: build bm25
+        run: python -m retrieval.sparse build
+
+      # --out is not decoration. reports/results.jsonl is committed, and run is resumable by
+      # design, so writing there would skip every pair and gate on numbers measured on a
+      # laptop weeks ago.
+      - name: run eval
+        run: python -m harness.run_eval run --systems ${{ github.event.inputs.systems || 'bm25' }} --budget 600 --out reports/ci-results.jsonl
+
+      - name: gate
+        run: python -m harness.gate check --systems ${{ github.event.inputs.systems || 'bm25' }} --results reports/ci-results.jsonl
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results
+          path: reports/ci-results.jsonl
