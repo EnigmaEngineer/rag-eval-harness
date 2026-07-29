@@ -14,6 +14,7 @@ python -m retrieval.fuse smoke    # dense vs bm25 vs fused, side by side
 python -m retrieval.rerank smoke  # fused vs reranked, with per-stage latency
 python -m harness.run_eval run    # score every system on the golden set
 python -m harness.run_eval report # the ablation table
+python -m harness.gate check      # fail if a metric regressed past its tolerance
 ```
 
 `run` appends one row per system and question and skips pairs it has already recorded, so it
@@ -29,9 +30,13 @@ they regress.
 
 ## Corpus
 
-Spark docs, pinned to `v3.5.1`. 244 markdown files. I picked it because I can write the
+Spark docs, pinned to `v3.5.1`. 241 markdown files. I picked it because I can write the
 answers myself, so a wrong retrieval is obviously wrong without checking a label. Reasoning
 in `docs/corpus.md`.
+
+`README.md`, `index.md` and `404.md` are excluded. They live in the docs folder but they are
+the docs site's build instructions, a link menu and an error page. A file that mentions every
+topic and explains none is the worst thing a lexical index can hold.
 
 Nothing from the corpus is committed here. `fetch_corpus.py` pulls it at build time and
 writes a manifest with a SHA-256 per file so runs stay comparable.
@@ -119,10 +124,10 @@ from `evalset/gold_chunks.jsonl`, the same questions and labels for all four sys
 
 | system | recall@1 | recall@5 | recall@10 | hit@1 | hit@5 | MRR@10 | support@5 | ms |
 |---|---|---|---|---|---|---|---|---|
-| dense only | 0.167 | 0.600 | 0.633 | 0.400 | 0.700 | 0.478 | 0.700 | 22 |
-| BM25 only | 0.200 | **0.700** | **0.783** | 0.500 | **0.800** | 0.607 | **0.900** | **1** |
-| fused (RRF) | **0.250** | 0.633 | 0.683 | **0.600** | 0.700 | **0.634** | 0.750 | 23 |
-| fused + rerank | 0.217 | 0.500 | 0.683 | 0.500 | 0.700 | 0.592 | 0.700 | 3755 |
+| dense only | 0.167 | 0.600 | 0.633 | 0.400 | 0.700 | 0.483 | 0.700 | 23 |
+| BM25 only | 0.200 | **0.700** | **0.750** | 0.500 | **0.800** | 0.607 | **0.900** | **1** |
+| fused (RRF) | **0.250** | 0.633 | 0.633 | **0.600** | 0.700 | **0.620** | 0.750 | 23 |
+| fused + rerank | 0.217 | 0.450 | 0.683 | 0.500 | 0.700 | 0.592 | 0.700 | 4412 |
 
 `recall@k` is the fraction of a question's gold chunks inside the top k. `hit@k` asks only
 whether one of them made it, so it does not punish a question for having three gold chunks
@@ -134,10 +139,10 @@ each are in `harness/metrics.py`.
 recall at 5 and at 10, the best hit@5, and the best evidence support. The dense retriever,
 the expensive part, is last on almost everything.
 
-**The reranker is worse than the fusion it reranks.** recall@5 drops from 0.633 to 0.500 and
-MRR from 0.634 to 0.592, for 3755 ms a query. Day 4 could not see this. A doc-overlap proxy
-cannot measure ordering, which is the only thing a reranker changes. That was the reason for
-building these metrics and it is the first thing they caught.
+**The reranker is worse than the fusion it reranks.** recall@5 drops from 0.633 to 0.450 and
+MRR from 0.620 to 0.592, for 4412 ms a query. A doc-overlap proxy cannot measure ordering,
+which is the only thing a reranker changes. That was the reason for building these metrics
+and it is the first thing they caught.
 
 Hybrid keeps a narrow lead where it was always supposed to: the top of the list. It has the
 best recall@1, hit@1 and MRR@10. On ten questions a 0.1 gap in hit@1 is one question, which
@@ -149,10 +154,41 @@ The reranker comes off the default path. Nothing in these numbers justifies 3.7 
 query for a measurably worse ranking. `retrieval/rerank.py` stays, because the measurement is
 the point and a domain-tuned cross-encoder is still the obvious next thing to try.
 
-Whether hybrid survives against plain BM25 is deliberately not decided here. Day 6 rebuilds
-the chunks to fix the token-budget overflow, which re-embeds the corpus and moves every number
-in this table. Cutting a component on figures that are about to change would be guessing.
-The comparison gets rerun after the rebuild and the exit condition stays as written.
+Whether hybrid survives against plain BM25 is still not decided. The plan was to decide it
+after the chunk rebuild, on the grounds that re-embedding the corpus would move every number
+here. It did not. See below.
+
+### The rebuild that changed almost nothing
+
+Two defects were fixed together so their effect could be measured in one pass. 37 chunks ran
+up to 62 tokens past the 512 budget, so bge silently truncated their tails. And the corpus
+included `README.md`, `index.md` and `404.md`, which are the docs site's own build
+instructions, a link menu and an error page.
+
+Both are real bugs. The corpus went from 244 files and 3,228 chunks to 241 files and 3,212
+chunks, no chunk now exceeds 512 tokens, and the whole corpus was re-embedded against the
+rebuilt text.
+
+**23 of the 28 quality numbers came back byte-identical.** recall@1, hit@1, hit@5 and
+support@5 did not move on any of the four systems. The five that moved got slightly worse.
+
+| moved | before | after |
+|---|---|---|
+| bm25 recall@10 | 0.783 | 0.750 |
+| fused recall@10 | 0.683 | 0.633 |
+| fused MRR@10 | 0.634 | 0.620 |
+| rerank recall@5 | 0.500 | 0.450 |
+| dense MRR@10 | 0.478 | 0.483 |
+
+`README.md` did leave rank 1 on q009. It was replaced by `job-scheduling.md`, and the gold
+chunk stayed at rank 5 either way. Deleting the junk document changed the ranking without
+changing the answer.
+
+The useful lesson is about where effort goes. Both defects looked serious enough to hold a
+decision open for a day. Neither was load-bearing. The real reason q005 and q009 fail has
+nothing to do with chunk boundaries, and a full re-embed was the expensive way to find that
+out. It was still worth running, because "we assumed it mattered" and "we measured it and it
+did not" are different claims and only one of them is evidence.
 
 ### Where the retrievers actually fail
 
@@ -162,11 +198,39 @@ evidence, the `spark.sql.autoBroadcastJoinThreshold` row, sits inside a large HT
 table. The question is also the one with the grounding defect described below. It is a bad
 question before it is a retrieval failure.
 
-q009 exposes a corpus problem. BM25 ranks `README.md` first for "why was a completed
-application slow." That file is Spark's instructions for building its own documentation. The
-corpus fetch takes every markdown file in the docs folder, including `README.md`, `index.md`
-and `404.md`, none of which are documentation. Filtering them is folded into the day-6
-rebuild rather than done here, because it changes every number in the table above.
+q009 still scores 0.200 on BM25 and zero on the other three. It asks why a completed
+application was slow, and the gold chunk is the history server section of `monitoring.md`.
+Removing the meta files moved `README.md` off rank 1 and moved nothing else. The gold chunk
+sat at rank 5 before and after.
+
+## The regression gate
+
+`harness/gate.py` compares the current report against `reports/baseline.json` and exits
+nonzero when a tracked metric has fallen further than its tolerance.
+
+```bash
+python -m harness.gate check
+python -m harness.gate update --note "why the numbers moved"
+```
+
+Tolerances are per metric and deliberately loose. The golden set has ten questions, so one
+question flipping is 0.100 of recall@1. A gate tuned tighter than the noise floor fails on
+nothing real and gets switched off within a week, which is worse than no gate. Latency gets a
+2x band rather than a millisecond budget, because a CI runner is not this machine.
+
+Re-baselining requires a `--note`. That is the whole design. Numbers are allowed to move, but
+somebody has to type a reason, and it lands in the diff where a reviewer sees it.
+
+`.github/workflows/eval.yml` runs the unit tests on every push, then fetches the corpus,
+chunks it, builds BM25 and gates on it. **Dense, fused and rerank are not gated on every
+push.** Embedding 3,212 chunks with bge-small takes about 17 minutes on two cores, which is
+what a hosted runner gives you, and paying that per pull request to gate a ten-question eval
+is not a trade worth making. They run on `workflow_dispatch` instead. BM25 is also the system
+hardest to beat in the table above, so it is the right thing to protect by default.
+
+CI writes to `reports/ci-results.jsonl` rather than the committed `reports/results.jsonl`.
+`run_eval` is resumable and skips pairs it already has, so pointing CI at the committed file
+would skip every question, write nothing and pass a gate that measured nothing.
 
 ## Latency per stage
 
@@ -179,6 +243,18 @@ measured with `perf_counter` inside the pipeline.
 | BM25 | 1.4 |
 | fuse | 0.1 |
 | rerank | 3567.7 |
+
+Those per-stage figures are from the day-4 pipeline run. The end-to-end column in the
+ablation table above was re-measured on the rebuilt corpus and reads 23 ms for dense and 4412
+ms for rerank on the same hardware. Rerank latency moves several hundred milliseconds between
+runs on a 2-core box, so treat it as a magnitude and not a benchmark.
+
+Getting a trustworthy number here took two separate fixes. The first was loading the model
+outside the timer. The second is that torch does not allocate buffers or pick kernels until
+the first forward pass, so a freshly constructed model still charges its warmup to whichever
+query runs first. That read 1606 ms against 19 ms for the other nine and dragged the dense
+mean to 178 ms, a number no query in the run actually took. `prime()` now pushes a throwaway
+query through every model before any timer starts.
 
 Rerank is 99.4 percent of the query budget and roughly 160 times the three retrieval stages
 combined. That is 50 query-passage pairs through a cross-encoder on 2 CPU cores. It is the
