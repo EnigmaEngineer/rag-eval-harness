@@ -92,11 +92,24 @@ def build(max_seconds=35, batch_size=32):
 
     t0 = time.time()
     start = done
-    while done < n and time.time() - t0 < max_seconds:
+    # Stop before the batch that would overrun, not after. The old check only looked at
+    # elapsed time, so a slice sized to a 35s budget would start a batch at 34s and finish
+    # around 45s. The sandbox kills the call at 45s, and a killed call prints no progress
+    # line. Rate varies with hardware and chunk length (measured 3.1 chunks/s here today
+    # against ~9 on an earlier box), so the budget has to be spent against the observed
+    # batch cost rather than an assumed one. First batch always runs, otherwise a slow box
+    # never makes progress at all.
+    batch_cost = 0.0
+    while done < n:
+        elapsed = time.time() - t0
+        if done > start and elapsed + batch_cost * 1.2 > max_seconds:
+            break
+        tb = time.time()
         j = min(done + batch_size, n)
         vecs = model.encode([c["text"] for c in chunks[done:j]], batch_size=batch_size,
                             normalize_embeddings=True, show_progress_bar=False)
         emb[done:j] = np.asarray(vecs, dtype="float32")
+        batch_cost = time.time() - tb
         done = j
         prog["done"] = done
         PROGRESS_PATH.write_text(json.dumps(prog))
