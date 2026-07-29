@@ -63,6 +63,33 @@ def test_hard_split_handles_one_giant_line():
     assert all(count(p["text"]) <= 60 for p in parts)
 
 
+def test_overlap_tail_never_pushes_a_chunk_over_budget():
+    """The day-2 build shipped 37 chunks over the 512 budget and the recorded cause was
+    wrong. It was not wordpiece non-additivity. The packer reset a full chunk to its overlap
+    tail and then appended the unit that had just forced the flush, without re-checking the
+    two together. Worst case is room plus the whole tail budget.
+
+    Sizes are picked to hit that window rather than to look tidy. Budget 200 and a one-token
+    heading path give room 199 and a tail budget of 40. Alpha then Bravo fills 155. Charlie
+    at 180 forces the flush and fits on its own. Bravo at 35 is small enough to be carried as
+    overlap, so the second chunk starts at 35 and used to land on 216.
+
+    Budget stays well above 200 on purpose. `pack` floors room at 96 so a long heading path
+    cannot starve the content, and a budget near that floor would exercise the floor rather
+    than the tail.
+    """
+    body = " ".join([
+        "Alpha " * 119 + ".",
+        "Bravo " * 34 + ".",
+        "Charlie " * 179 + ".",
+    ])
+    chunks = chunk_doc("t.md", f"# H\n\n{body}\n", count, budget=200, overlap=40)
+    assert len(chunks) > 1, "expected the packer to flush at least once"
+    over = [c for c in chunks if c["n_tokens"] > 200]
+    assert not over, f"{len(over)} chunk(s) over budget: {[c['n_tokens'] for c in over]}"
+    assert all(c["oversized"] is False for c in chunks)
+
+
 def test_every_chunk_carries_its_heading_path():
     doc = "# A\n\n## B\n\nsome text about tuning.\n\n## C\n\nmore text about memory."
     chunks = chunk_doc("d.md", doc, count, budget=512, overlap=64)

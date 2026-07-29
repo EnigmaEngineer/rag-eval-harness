@@ -300,6 +300,15 @@ def pack(units, path, count, budget, overlap):
         if cur and cur_cost + u["n_tokens"] > room:
             emit()
             tail = _overlap_tail(cur, count, tail_budget)
+            # The overlap tail was being carried into the new chunk without being charged
+            # against the unit that forced the flush. A unit is allowed to be as large as
+            # room on its own, so tail + unit could reach room + tail_budget. That is the
+            # whole story behind the 37 chunks measured 3 to 62 tokens over 512 on day 2,
+            # and every one of those overruns is under the 64-token tail budget. Overlap is
+            # a nicety. Fitting inside the window the model actually reads is not. When the
+            # two conflict the tail loses.
+            if sum(t["n_tokens"] for t in tail) + u["n_tokens"] > room:
+                tail = []
             cur = list(tail)
             cur_cost = sum(t["n_tokens"] for t in tail)
         cur.append(u)
