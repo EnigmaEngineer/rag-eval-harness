@@ -20,6 +20,14 @@ REPO = "apache/spark"
 DOCS_PATH = "docs"
 DEFAULT_REF = "v3.5.1"
 
+# Not documentation. README.md is build instructions for the docs site itself, index.md is a
+# link menu, 404.md is an error page. They were being chunked and indexed alongside real
+# content, and BM25 returned README.md at rank 1 for "why was a completed application slow".
+# A meta file that mentions every topic and explains none is the worst thing an index can
+# hold. Filtering here rather than at chunk time keeps the manifest honest about what the
+# corpus actually is.
+NOT_DOCS = {"README.md", "index.md", "404.md"}
+
 ROOT = Path(__file__).parent.parent
 CORPUS_DIR = ROOT / "data" / "corpus"
 MANIFEST = ROOT / "data" / "manifest.json"
@@ -49,10 +57,20 @@ def get(url, retries=3):
     raise RuntimeError(f"gave up on {url}")
 
 
+def is_documentation(name):
+    """One place that decides whether a corpus file is real documentation.
+
+    ingest.chunk imports this too, so a stale meta file already sitting in data/corpus from
+    an older fetch still gets skipped at chunk time. Deleting the file would also work but
+    only until someone re-runs an old fetch.
+    """
+    return name.endswith(".md") and name not in NOT_DOCS
+
+
 def list_markdown(ref):
     url = f"https://api.github.com/repos/{REPO}/contents/{DOCS_PATH}?ref={ref}"
     entries = json.loads(get(url))
-    return [e for e in entries if e["name"].endswith(".md") and e["type"] == "file"]
+    return [e for e in entries if is_documentation(e["name"]) and e["type"] == "file"]
 
 
 def sha256(data: bytes) -> str:

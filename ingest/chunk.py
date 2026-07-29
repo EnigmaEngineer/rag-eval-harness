@@ -20,6 +20,8 @@ import re
 import statistics
 from pathlib import Path
 
+from ingest.fetch_corpus import is_documentation
+
 ROOT = Path(__file__).parent.parent
 CORPUS = ROOT / "data" / "corpus"
 OUT = ROOT / "data" / "chunks.jsonl"
@@ -376,8 +378,9 @@ def run(budget, overlap, which):
         raise SystemExit("no corpus. run: python -m ingest.fetch_corpus")
 
     count = bge_counter() if which == "bge" else approx_counter()
+    docs = [p for p in sorted(CORPUS.glob("*.md")) if is_documentation(p.name)]
     all_chunks = []
-    for path in sorted(CORPUS.glob("*.md")):
+    for path in docs:
         all_chunks.extend(chunk_doc(path.name, path.read_text(encoding="utf-8", errors="replace"),
                                     count, budget, overlap))
 
@@ -391,7 +394,7 @@ def run(budget, overlap, which):
     oversized = sum(1 for c in all_chunks if c["oversized"])
 
     label = "wordpiece" if which == "bge" else "approx (word+punct heuristic)"
-    print(f"{len(all_chunks)} chunks from {len(list(CORPUS.glob('*.md')))} docs -> {OUT.name}")
+    print(f"{len(all_chunks)} chunks from {len(docs)} docs -> {OUT.name}")
     print(f"token counts: {label}")
     print(f"  min {min(toks)}  median {int(statistics.median(toks))}  "
           f"mean {statistics.mean(toks):.0f}  max {max(toks)}")

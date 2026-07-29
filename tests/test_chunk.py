@@ -14,7 +14,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from ingest.chunk import (  # noqa: E402
-    approx_counter, segment, table_units, hard_split, chunk_doc,
+    approx_counter, segment, table_units, hard_split, chunk_doc, is_documentation,
 )
 
 count = approx_counter()
@@ -88,6 +88,14 @@ def test_overlap_tail_never_pushes_a_chunk_over_budget():
     over = [c for c in chunks if c["n_tokens"] > 200]
     assert not over, f"{len(over)} chunk(s) over budget: {[c['n_tokens'] for c in over]}"
     assert all(c["oversized"] is False for c in chunks)
+
+
+def test_meta_files_are_not_documentation():
+    assert is_documentation("configuration.md")
+    assert not is_documentation("README.md"), "docs-site build instructions, not documentation"
+    assert not is_documentation("index.md")
+    assert not is_documentation("404.md")
+    assert not is_documentation("Makefile")
 
 
 def test_every_chunk_carries_its_heading_path():
