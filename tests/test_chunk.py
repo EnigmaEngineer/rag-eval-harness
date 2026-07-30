@@ -14,7 +14,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from ingest.chunk import (  # noqa: E402
-    approx_counter, segment, table_units, hard_split, chunk_doc, is_documentation,
+    approx_counter, segment, table_units, hard_split, pack, chunk_doc, is_documentation,
 )
 
 count = approx_counter()
@@ -88,6 +88,35 @@ def test_overlap_tail_never_pushes_a_chunk_over_budget():
     over = [c for c in chunks if c["n_tokens"] > 200]
     assert not over, f"{len(over)} chunk(s) over budget: {[c['n_tokens'] for c in over]}"
     assert all(c["oversized"] is False for c in chunks)
+
+
+def test_room_floor_produces_a_chunk_that_is_flagged_oversized():
+    """`pack` floors room at 96 so a very long heading path cannot starve the content down
+    to nothing. The cost is that the chunk it produces can exceed the budget. This has been
+    an open question for three days: does the floor let an over-budget chunk through
+    unreported?
+
+    It does not. `emit` computes `oversized` as `n > budget`, and it never looks at `room`.
+    So a floor-produced chunk is counted honestly by the same rule as every other chunk.
+    That is worth a test rather than another note, because the cheap way to write `emit`
+    is against `room`, and then this whole class of chunk goes silently unflagged.
+
+    Sizes are chosen to land inside the floor. A 20-word heading path costs 39 tokens, and
+    a 120 budget leaves 81, which is below 96. So room floors up to 96 and a single 96-token
+    unit lands at 135 against a budget of 120.
+    """
+    path = " > ".join(f"section{i}" for i in range(20))
+    budget, overlap = 120, 16
+    prefix_cost = count(path + "\n")
+    assert budget - prefix_cost < 96, "sizes drifted, this no longer exercises the floor"
+
+    units = [{"kind": "text", "text": "alpha " * 96}]
+    chunks = pack(units, path, count, budget, overlap)
+
+    assert len(chunks) == 1
+    c = chunks[0]
+    assert c["n_tokens"] > budget, "the floor is supposed to overrun here, that is the point"
+    assert c["oversized"] is True, "a floor-produced chunk went unflagged"
 
 
 def test_meta_files_are_not_documentation():
