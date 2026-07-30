@@ -15,6 +15,7 @@ python -m retrieval.rerank smoke  # fused vs reranked, with per-stage latency
 python -m harness.run_eval run    # score every system on the golden set
 python -m harness.run_eval report # the ablation table
 python -m harness.gate check      # fail if a metric regressed past its tolerance
+python -m harness.significance sweep  # is any gap in the table bigger than one question
 ```
 
 `run` appends one row per system and question and skips pairs it has already recorded, so it
@@ -154,9 +155,9 @@ The reranker comes off the default path. Nothing in these numbers justifies 3.7 
 query for a measurably worse ranking. `retrieval/rerank.py` stays, because the measurement is
 the point and a domain-tuned cross-encoder is still the obvious next thing to try.
 
-Whether hybrid survives against plain BM25 is still not decided. The plan was to decide it
-after the chunk rebuild, on the grounds that re-embedding the corpus would move every number
-here. It did not. See below.
+Whether hybrid survives against plain BM25 took two more days to settle. The plan was to
+decide it after the chunk rebuild, on the grounds that re-embedding the corpus would move
+every number here. It did not. Both sections below are that story.
 
 ### The rebuild that changed almost nothing
 
@@ -202,6 +203,109 @@ q009 still scores 0.200 on BM25 and zero on the other three. It asks why a compl
 application was slow, and the gold chunk is the history server section of `monitoring.md`.
 Removing the meta files moved `README.md` off rank 1 and moved nothing else. The gold chunk
 sat at rank 5 before and after.
+
+### Is any gap in this table bigger than one question
+
+Two days were spent refusing to call the hybrid-versus-BM25 result on the grounds that the
+numbers were close. That was the right instinct and a bad way to decide anything, so it got
+replaced with a test.
+
+```bash
+python -m harness.significance compare --a fused --b bm25
+```
+
+Paired on question id, because both systems answer the same ten questions against the same
+labels. The p-value is an exact permutation test. Under the null the two systems are
+interchangeable, so flipping the sign of any paired difference is a valid relabelling. Ten
+questions give 2^10 = 1024 sign assignments and all of them are enumerated. No sampling and
+no seed. The interval is a paired bootstrap over questions, which is the thing a wider eval
+set would change.
+
+| metric | diff | 95% CI | p | questions moved |
+|---|---|---|---|---|
+| recall@1 | +0.050 | +0.000 to +0.150 | 1.000 | 1/10 |
+| recall@5 | -0.067 | -0.300 to +0.100 | 1.000 | 2/10 |
+| recall@10 | -0.117 | -0.350 to +0.067 | 0.500 | 3/10 |
+| hit@1 | +0.100 | +0.000 to +0.300 | 1.000 | 1/10 |
+| hit@5 | -0.100 | -0.300 to +0.000 | 1.000 | 1/10 |
+| MRR@10 | +0.013 | -0.077 to +0.133 | 1.000 | 3/10 |
+| support@5 | -0.150 | -0.350 to +0.000 | 0.500 | 2/10 |
+| ms | +21 | +20 to +24 | 0.002 | 10/10 |
+
+Seven of the eight intervals include zero. The one that does not is latency, where fusion
+costs 21 ms more than BM25. **The cost of hybrid retrieval is measurable on this eval set and
+the benefit is not.**
+
+The `ms` row is there as a positive control and it earns its place. Its p-value of 0.002 is
+2/1024, the smallest value ten questions can produce. Without a row that fires, eight
+non-significant results are indistinguishable from a broken test.
+
+The `p = 1.000` on recall@1 is not a rounding artefact. Exactly one question separates the two
+systems there, and flipping the sign of nine zeros changes nothing, so every one of the 1024
+assignments is as extreme as the observed one.
+
+That generalises, and `p_floor()` reports it directly. Ties drop out of the permutation space,
+so only the k questions that actually differ matter, leaving a smallest possible p-value of
+2/2^k.
+
+| questions that differ | best p-value available |
+|---|---|
+| 1 | 1.000 |
+| 2 | 0.500 |
+| 4 | 0.125 |
+| 6 | 0.031 |
+| 10 | 0.002 |
+
+Below six moved questions the comparison cannot reach 0.05 no matter how large the gap is.
+Seven of the eight rows above move three questions or fewer, so every quality comparison in
+the table was unwinnable before any data was collected. Only latency moved all ten.
+**The answer to a gap this size is more questions, not more tuning.**
+
+Hybrid stays on the default path, and the reason is now stated honestly rather than implied by
+a table. It is not that fusion was shown to be better. It is that fusion is not shown to be
+worse, it costs 21 ms, and it wins the rank-1 metrics that matter most for a downstream
+generator that only sees the top few chunks. That is a design preference standing in for
+evidence this eval set is too small to supply. If the golden set reaches 60 questions and the
+gap still moves three questions, fusion should come off.
+
+### support@5 reports full marks on a question every system fails
+
+The worst finding of the project, and it is about a metric built here rather than a retriever.
+
+```bash
+python -m harness.diagnose
+```
+
+```
+3 disagreement(s):
+
+| qid | kind | systems |
+|---|---|---|
+| q002 | evidence without support | bm25, rerank |
+| q005 | support without evidence | all |
+| q007 | evidence without support | dense, rerank |
+
+7 of 10 questions rest on one required string or none
+```
+
+q005 scores `support@5` of 1.0 on all four systems while `hit@10` is 0 on all four. Every
+system missed the labelled answer and the metric described above as a ceiling on faithfulness
+reported a perfect score.
+
+The cause is that `spark.sql.autoBroadcastJoinThreshold` appears in three chunks of
+`sql-performance-tuning.md`. The retrievers returned `#0005`, which names the key while
+explaining `BROADCAST` query hints and carries neither the 10 MB default nor the `-1` disable.
+It does not answer the question. Substring presence satisfied `support@5` anyway.
+
+This was visible in the day-5 table and went unnoticed for two days, because a column of means
+cannot show that two metrics disagree about the same question. Across all 40 rows `support@5`
+returns 1.0 on 30 of them, and 7 of the 10 questions have one required string or none, which
+makes it close to a one-bit metric on most of the set. The ceiling is real and it does not
+bind.
+
+`harness/diagnose.py` exists to catch that shape. A disagreement on one system out of four
+usually means that system retrieved badly. A disagreement on all four means the eval set is
+wrong, and `--strict` exits nonzero on those.
 
 ## The regression gate
 
@@ -304,10 +408,29 @@ because its grounding check verifies config keys and declared spans, and q005 ha
 its one config key is present. The answer has been left as written rather than quietly edited to
 match the corpus.
 
+`python -m evalset.validate --claims` now scores every prose clause against the best-matching
+paragraph in its source docs and lists the weakest first. **It is advisory and it does not
+cleanly find the defect.** q005's fabricated claim scores 0.50 and lands second on a list of
+ten, below a correct q006 claim at 0.40. So it narrows ten claims to a shortlist worth reading
+by hand and it is not a gate. Two sharper approaches were measured and thrown away first.
+Anchoring each sentence to a config key flagged 8 clauses of which 1 was the real defect.
+Content bigram coverage scored the fabricated clause at 0.00 and scored three correct clauses at
+0.00 as well. Neither discriminates, and shipping either would have looked rigorous while being
+noise.
+
 Faithfulness is not measured, because there is no generator in this repo to be faithful or
 unfaithful. What `support@5` measures is whether the retrieved context even contains the
 evidence a correct answer would need. That is a ceiling on faithfulness rather than a
-measurement of it, and it is named accordingly.
+measurement of it, and it is named accordingly. As of day 7 that ceiling is known not to bind.
+It returns 1.0 on 30 of 40 rows, 7 of the 10 questions rest on a single required string, and on
+q005 it reports 1.0 while every system misses the answer. Treat it as a smoke alarm for missing
+evidence and not as a quality score. `harness/diagnose.py` is the check that catches it.
+
+Every quality comparison in the ablation table is underpowered, and `p_floor()` quantifies it
+rather than leaving it as a hedge. Below six questions moving, no gap can reach p = 0.05 at any
+effect size. Seven of eight metric comparisons move three questions or fewer. This is the
+single strongest argument for growing the golden set and it is why "target is 60" above is a
+plan rather than a nice-to-have.
 
 Ten questions, one corpus, one machine. These numbers are for catching a regression in this
 project. They are not a benchmark of BM25 against dense retrieval in general, and a corpus of
