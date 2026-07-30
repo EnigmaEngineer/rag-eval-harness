@@ -376,6 +376,14 @@ written as one very long physical line and only survive because the oversized-bl
 windower falls back to splitting on spaces. That is a safety net, not real markdown-table
 handling. It is on the list.
 
+A heading path long enough to eat the token budget will produce a chunk over that budget.
+`pack()` repeats the heading path on every chunk and floors the room left for content at 96
+tokens, so content never gets squeezed to nothing. The cost is an overrun. That overrun is
+not hidden. `emit()` flags `oversized` against the budget and never against the floored room,
+so one of these chunks is counted in the over-budget total like any other, and
+`tests/test_chunk.py` pins that. It does not fire on this corpus. The longest heading path
+here leaves 448 tokens of room by the approximate counter, well clear of the floor.
+
 BM25 does no stemming. "partition" and "partitions" are distinct terms. It did not cost a
 golden hit on this corpus, but a query using the singular against a doc that only uses the
 plural would miss. A real stemmer is a dependency and a source of surprising matches, so it
