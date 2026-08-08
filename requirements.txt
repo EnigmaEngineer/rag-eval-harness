@@ -1,5 +1,4 @@
 # pinned so versions are decided up front rather than whatever pip resolves later.
-requests==2.32.3
 
 # day 2: chunking + dense retrieval.
 # sentence-transformers pulls torch (~200 MB), which is the bulk of a fresh install.
@@ -9,6 +8,27 @@ transformers==4.44.2
 sentence-transformers==3.0.1
 faiss-cpu==1.8.0
 
+# numpy and torch are imported directly by retrieval/dense.py and retrieval/rerank.py, so
+# the rule three lines up applies to them too. Both were missing here until 2026-08-08.
+#
+# The cap is not housekeeping. faiss-cpu 1.8.0 ships compiled against numpy 1.x and asks
+# for numpy with no upper bound. A clean install therefore resolves numpy 2.x and the very
+# first `import faiss` dies with "_ARRAY_API not found". Reproduced on 2026-08-08 against
+# numpy 2.2.6, which is what pip resolved for this file on that day.
+numpy<2
+
+# torch is deliberately not pinned. The version this project's latency figures were
+# measured on was never written down. Choosing one now would hand those figures a
+# provenance they do not have, which is worse than an unpinned line.
+# On a CPU only machine install it from the cpu index first. The default PyPI wheel
+# carries CUDA and is far larger.
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+torch
+
 # day 3: BM25 is hand-rolled in retrieval/sparse.py (no rank-bm25). It is an inverted index
 # and one scoring formula. Keeping the tokenizer and k1/b/idf under test is worth more here
 # than the dependency saves.
+
+# requests==2.32.3 was declared on day 1 and removed on 2026-08-08. Nothing in this repo
+# imports it. ingest/fetch_corpus.py uses urllib.request from the standard library.
+# It still arrives underneath, because transformers depends on it.
