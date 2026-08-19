@@ -57,14 +57,15 @@ rankings are combined with reciprocal rank fusion. RRF keeps only the ranks and 
 raw scores away, which sidesteps having to normalize cosine and BM25 onto a shared scale.
 The full argument is in `docs/fusion.md`.
 
-The fused pool then goes through a cross-encoder reranker, `cross-encoder/ms-marco-MiniLM-L-6-v2`.
-The dense retriever is a bi-encoder. Query and passage become two separate vectors, compared
-by cosine, and the passage vectors are precomputed. That is what lets it scan every chunk in
-milliseconds. The query never sees the passage. A cross-encoder concatenates query and
-passage and runs one transformer forward over the pair, so every query term attends to every
-passage term. Much better at telling a real answer from a near-miss, and far too slow to run
-over the corpus. One forward per pair, nothing cacheable. So it runs last, over the short
-fused pool, not the 3228 chunks.
+The fused pool then goes through a cross-encoder reranker,
+`cross-encoder/ms-marco-MiniLM-L-6-v2`. The dense retriever is a bi-encoder. Query and
+passage become two separate vectors, compared by cosine, and the passage vectors are
+precomputed. That is what lets it scan every chunk in milliseconds. The query never sees
+the passage. A cross-encoder concatenates query and passage and runs one transformer
+forward over the pair, so every query term attends to every passage term. Much better at
+telling a real answer from a near-miss, and far too slow to run over the corpus. One
+forward per pair, nothing cacheable. So it runs last, over the short fused pool, not the
+3228 chunks.
 
 ## A hybrid result that went the wrong way
 
@@ -113,10 +114,11 @@ The reranker scored the correct chunk at minus 0.733 and ranked it sixth.
 
 So the cross-encoder rewarded surface topicality over the actual answer. It cannot tell
 "coalesce partitions" from "increase parallelism" when both sit in dense shuffle-tuning
-prose. This is the honest limit of a relevance model that was never trained on Spark. At chunk
-level the reranker leaves q002's correct chunk at rank 6, which is where the document level
-run left it too. I wrote the exit condition into `docs/fusion.md` before any of this ran.
-If it loses to BM25 alone on real metrics, hybrid gets cut. The table below is that measurement.
+prose. This is the honest limit of a relevance model that was never trained on Spark. At
+chunk level the reranker leaves q002's correct chunk at rank 6, which is where the
+document level run left it too. I wrote the exit condition into `docs/fusion.md` before
+any of this ran. If it loses to BM25 alone on real metrics, hybrid gets cut. The table
+below is that measurement.
 
 ## The ablation table, and what it decided
 
@@ -298,10 +300,10 @@ explaining `BROADCAST` query hints and carries neither the 10 MB default nor the
 It does not answer the question. Substring presence satisfied `support@5` anyway.
 
 This sat in the ablation table across two runs before I spotted it, because a column of
-means cannot show that two metrics disagree about the same question. Across all 40 rows `support@5`
-returns 1.0 on 30 of them, and 7 of the 10 questions have one required string or none, which
-makes it close to a one-bit metric on most of the set. The ceiling is real and it does not
-bind.
+means cannot show that two metrics disagree about the same question. Across all 40 rows
+`support@5` returns 1.0 on 30 of them, and 7 of the 10 questions have one required
+string or none, which makes it close to a one-bit metric on most of the set. The ceiling
+is real and it does not bind.
 
 `harness/diagnose.py` exists to catch that shape. A disagreement on one system out of four
 usually means that system retrieved badly. A disagreement on all four means the eval set is
@@ -398,47 +400,49 @@ At roughly 3.5 seconds a query on 2 CPU cores, reranking every query is not some
 would ship as is. The pool size is a knob (`--pool`) and the honest production answer is a
 GPU or a shorter pool. The point here is to measure the tradeoff, not to hide it.
 
-The smoke checks report source-doc overlap at top-5, not recall@k on gold chunks. They are kept
-as a fast sanity proxy for spotting where the retrievers disagree. `harness/run_eval.py` is the
-metric that counts.
+The smoke checks report source-doc overlap at top-5, not recall@k on gold chunks. They
+are kept as a fast sanity proxy for spotting where the retrievers disagree.
+`harness/run_eval.py` is the metric that counts.
 
-The gold chunk labels are minimal-sufficient rather than exhaustive. A chunk is gold only if it
-would let a reader answer the question on its own. Chunks that are relevant but not sufficient
-are scored as misses, so every recall number here is a floor. q009 is the clearest case. Three
-systems return the history server configuration table, which is the same section as the labelled
-chunk and arguably useful, and score zero for it. The labels were fixed before any system was
-run and have not been touched since. Moving a label after seeing a score is how an eval set
-stops meaning anything. Full method in `docs/labelling.md`.
+The gold chunk labels are minimal-sufficient rather than exhaustive. A chunk is gold
+only if it would let a reader answer the question on its own. Chunks that are relevant
+but not sufficient are scored as misses, so every recall number here is a floor. q009 is
+the clearest case. Three systems return the history server configuration table, which is
+the same section as the labelled chunk and arguably useful, and score zero for it. The
+labels were fixed before any system was run and have not been touched since. Moving a
+label after seeing a score is how an eval set stops meaning anything. Full method in
+`docs/labelling.md`.
 
-q005's reference answer claims a broadcast join needs the smaller relation to fit in driver and
-executor memory. No chunk in either cited source doc says that. `evalset/validate.py` missed it
-because its grounding check verifies config keys and declared spans, and q005 has no spans while
-its one config key is present. The answer has been left as written rather than quietly edited to
-match the corpus.
+q005's reference answer claims a broadcast join needs the smaller relation to fit in
+driver and executor memory. No chunk in either cited source doc says that.
+`evalset/validate.py` missed it because its grounding check verifies config keys and
+declared spans, and q005 has no spans while its one config key is present. The answer
+has been left as written rather than quietly edited to match the corpus.
 
-`python -m evalset.validate --claims` now scores every prose clause against the best-matching
-paragraph in its source docs and lists the weakest first. **It is advisory and it does not
-cleanly find the defect.** q005's fabricated claim scores 0.50 and lands second on a list of
-ten, below a correct q006 claim at 0.40. So it narrows ten claims to a shortlist worth reading
-by hand and it is not a gate. Two sharper approaches were measured and thrown away first.
-Anchoring each sentence to a config key flagged 8 clauses of which 1 was the real defect.
-Content bigram coverage scored the fabricated clause at 0.00 and scored three correct clauses at
-0.00 as well. Neither discriminates, and shipping either would have looked rigorous while being
-noise.
+`python -m evalset.validate --claims` now scores every prose clause against the
+best-matching paragraph in its source docs and lists the weakest first. **It is advisory
+and it does not cleanly find the defect.** q005's fabricated claim scores 0.50 and lands
+second on a list of ten, below a correct q006 claim at 0.40. So it narrows ten claims to
+a shortlist worth reading by hand and it is not a gate. Two sharper approaches were
+measured and thrown away first. Anchoring each sentence to a config key flagged 8
+clauses of which 1 was the real defect. Content bigram coverage scored the fabricated
+clause at 0.00 and scored three correct clauses at 0.00 as well. Neither discriminates,
+and shipping either would have looked rigorous while being noise.
 
-Faithfulness is not measured, because there is no generator in this repo to be faithful or
-unfaithful. What `support@5` measures is whether the retrieved context even contains the
-evidence a correct answer would need. That is a ceiling on faithfulness rather than a
-measurement of it, and it is named accordingly. That ceiling is known not to bind.
-It returns 1.0 on 30 of 40 rows, 7 of the 10 questions rest on a single required string, and on
-q005 it reports 1.0 while every system misses the answer. Treat it as a smoke alarm for missing
-evidence and not as a quality score. `harness/diagnose.py` is the check that catches it.
+Faithfulness is not measured, because there is no generator in this repo to be faithful
+or unfaithful. What `support@5` measures is whether the retrieved context even contains
+the evidence a correct answer would need. That is a ceiling on faithfulness rather than
+a measurement of it, and it is named accordingly. That ceiling is known not to bind. It
+returns 1.0 on 30 of 40 rows, 7 of the 10 questions rest on a single required string,
+and on q005 it reports 1.0 while every system misses the answer. Treat it as a smoke
+alarm for missing evidence and not as a quality score. `harness/diagnose.py` is the
+check that catches it.
 
-Every quality comparison in the ablation table is underpowered, and `p_floor()` quantifies it
-rather than leaving it as a hedge. Below six questions moving, no gap can reach p = 0.05 at any
-effect size. Seven of eight metric comparisons move three questions or fewer. This is the
-single strongest argument for growing the golden set and it is why "target is 60" above is a
-plan rather than a nice-to-have.
+Every quality comparison in the ablation table is underpowered, and `p_floor()`
+quantifies it rather than leaving it as a hedge. Below six questions moving, no gap can
+reach p = 0.05 at any effect size. Seven of eight metric comparisons move three
+questions or fewer. This is the single strongest argument for growing the golden set and
+it is why "target is 60" above is a plan rather than a nice-to-have.
 
 Ten questions, one corpus, one machine. These numbers are for catching a regression in this
 project. They are not a benchmark of BM25 against dense retrieval in general, and a corpus of

@@ -1,7 +1,7 @@
 # Chunking strategy
 
-Decided before any code, implemented right after. Written down first so the eval has something to
-disprove.
+Decided before any code, implemented right after. Written down first so the eval has
+something to disprove.
 
 All numbers below come from `python -m ingest.corpus_stats` against the pinned corpus.
 
@@ -25,8 +25,8 @@ Both markup styles appear across the corpus, so the chunker has to handle each.
 
 ## The claim
 
-Structure-aware chunking beats fixed-size chunking on this corpus. The ablation either shows that
-in the ablation table or it does not. If it does not I say so.
+Structure-aware chunking beats fixed-size chunking on this corpus. The ablation either
+shows that in the ablation table or it does not. If it does not I say so.
 
 ## Approach
 

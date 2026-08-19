@@ -13,9 +13,10 @@ There are two common ways to fuse. I picked reciprocal rank fusion. Here is why.
 The obvious approach is `final = a * dense_score + (1 - a) * bm25_score`. It fails on a detail
 that is easy to miss. The two scores are not on the same scale.
 
-Dense cosine here is a similarity in roughly 0 to 1. BM25 is an unbounded sum of per-term
-idf-weighted contributions. A BM25 score of 18 and a cosine of 0.62 are not comparable numbers.
-To add them you first have to normalise. Every normalisation has a problem.
+Dense cosine here is a similarity in roughly 0 to 1. BM25 is an unbounded sum of
+per-term idf-weighted contributions. A BM25 score of 18 and a cosine of 0.62 are not
+comparable numbers. To add them you first have to normalise. Every normalisation has a
+problem.
 
 Min-max scaling maps each list to 0 to 1, but the min and max come from the candidate set you
 happened to retrieve for this query. The same document gets a different normalised score
@@ -32,9 +33,10 @@ RRF throws the scores away and keeps only the ranks.
 score(d) = sum over rankers of  1 / (k + rank_r(d))
 ```
 
-`rank` starts at 1. A document at rank 3 in either list contributes `1 / (k + 3)` regardless of
-whether its raw score was 0.9 or 0.55 or 18.2. There is nothing to normalise because there is
-nothing left on a raw scale. The two rankers become directly comparable by construction.
+`rank` starts at 1. A document at rank 3 in either list contributes `1 / (k + 3)`
+regardless of whether its raw score was 0.9 or 0.55 or 18.2. There is nothing to
+normalise because there is nothing left on a raw scale. The two rankers become directly
+comparable by construction.
 
 `k` damps the head of each list so one ranker's rank-1 cannot swamp everything below it. Small
 `k` trusts the top ranks hard. Large `k` flattens the contribution curve toward uniform. 60 is
