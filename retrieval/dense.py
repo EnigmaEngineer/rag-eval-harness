@@ -5,7 +5,7 @@
     python -m retrieval.dense search "how do I stop tiny tasks after a shuffle" --k 5
     python -m retrieval.dense smoke        # run the golden questions as a sanity check
 
-Model choice (resolves the day-1 open thread): bge-small-en-v1.5. 384-dim, 512-token
+Model choice: bge-small-en-v1.5. 384-dim, 512-token
 context, retrieval-tuned and small enough to embed the whole corpus on 2 CPUs. The 512
 chunk budget follows from its context window rather than being picked first and hoping a
 model fits it.
@@ -158,7 +158,7 @@ def search(query, k=5, model=None, index=None, meta=None):
 
 
 def smoke():
-    """Not the day-5 metric suite. A sanity check: for each golden question, does an
+    """Not the metric suite. A sanity check: for each golden question, does an
     expected source_doc show up in the top-k? Prints a hit/miss per question and a count.
     Anything below full marks here is a real signal worth chasing before building metrics
     on top of it."""

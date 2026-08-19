@@ -1,12 +1,13 @@
 """Tests that prime() actually warms every model the run will time.
 
-This suite exists because the same bug landed twice. Day 4 timed a bge model load inside the
-first question and read 12049 ms against 19 ms for the rest. Day 6 read 1606 ms against 19 ms
+This suite exists because the same bug landed twice. The first time, a bge model load sat
+inside the first question and read 12049 ms against 19 ms for the rest. The second time it
+read 1606 ms against 19 ms
 with the model already constructed, because torch does not allocate buffers or select kernels
 until the first forward pass. Both times a single outlier dragged the reported mean to a
 number no query took.
 
-Day 5's audit accepted "no test covers this" as a risk on the grounds that any such test
+I once accepted "no test covers this" as a risk on the grounds that any such test
 would just restate prime(). That was wrong, and the recurrence proved it. The contract worth
 testing is not how long a query takes. It is that every model prime() touches has had a real
 query pushed through it before the harness starts a timer. Stubs record the calls, so this

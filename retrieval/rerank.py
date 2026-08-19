@@ -14,7 +14,7 @@ per pair, nothing cacheable.
 
 So it runs last, over the short fused pool, not the corpus. Retrieve wide and cheap with
 dense + BM25, then rerank narrow and expensive. That is the whole retrieve-then-rerank
-shape and the reason the day-3 fusion regression might be recoverable: q002's correct chunk
+shape and the reason the fusion regression might be recoverable: q002's correct chunk
 is in the fused pool at rank 7, and the reranker gets to look at the text, not just the
 rank.
 
@@ -152,8 +152,8 @@ def search(query, k=5, pool=50, texts=None, model=None,
 def smoke(pool=50):
     """For each golden question, print fused top-5 vs reranked top-5 doc-hit side by side,
     and a mean per-stage latency line. Same doc-overlap proxy the other smokes use. Real
-    recall@k and MRR are day 5. What this shows today is whether the reranker moves the
-    fused result and whether it recovers q002, the chunk day 3 lost to RRF consensus bias.
+    recall@k and MRR live in the harness. What this shows is whether the reranker moves the
+    fused result and whether it recovers q002, the chunk fusion lost to RRF consensus bias.
 
     Fused top-5 and reranked top-5 are scored over the *same* fused pool, so any difference
     is the reranker's doing and not a different candidate set. On 2 CPU cores the cross

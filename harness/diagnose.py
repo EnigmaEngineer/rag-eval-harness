@@ -18,7 +18,7 @@ unrelated chunk satisfies them. On this eval set it is the second one, which mak
 still were not found in the top 5. Usually the required string is spelled differently in the
 docs than in the reference answer.
 
-This file exists because I read the day-6 ablation table for two days without noticing that
+This file exists because I read the ablation table across two sessions without noticing that
 q005 scored `support@5` 1.0 on all four systems while every one of them missed the answer.
 A table of means hides that. A per-question disagreement check does not.
 """

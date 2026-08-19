@@ -35,7 +35,7 @@ jobs:
   # Embedding 3,212 chunks with bge-small takes about 17 minutes on two cores, which is what
   # a hosted runner gives you. Paying that on every pull request to gate a ten-question eval
   # is not a trade worth making. BM25 builds from chunks.jsonl in under a second and it is
-  # the system the day-5 ablation showed is hardest to beat, so it is the one worth
+  # the system the ablation showed is hardest to beat, so it is the one worth
   # protecting on every change. The dense side is a manual dispatch.
   retrieval-gate:
     runs-on: ubuntu-latest

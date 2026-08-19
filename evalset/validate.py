@@ -67,7 +67,7 @@ def validate(rows, corpus_dir=CORPUS):
 
 # Spark config properties are exact strings, which makes them a cheap way to check that
 # an answer really lives in the docs it claims to. Catches a mislabelled source_doc, which
-# would otherwise look like a retrieval failure on day 5.
+# would otherwise look like a retrieval failure in the metrics.
 CONFIG_KEY = re.compile(r"spark\.[a-zA-Z0-9._]+[a-zA-Z0-9]")
 
 

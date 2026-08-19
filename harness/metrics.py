@@ -11,9 +11,9 @@ Three numbers, because one is not enough:
   three gold chunks instead of one, which is why it is never read alone.
 - `hit_at_k` asks only whether at least one gold chunk made the cut. Insensitive to gold set
   size, so it is comparable across questions. This is the closest thing to the doc-overlap
-  proxy the day-2 to day-4 smokes used, but at chunk level.
+  proxy the earlier smoke checks used, but at chunk level.
 - `reciprocal_rank` is about ordering. It is the metric a reranker is supposed to move, and
-  the reason day 4 could not show whether the reranker was worth its 3.5 seconds.
+  the reason the smoke checks could not show whether the reranker was worth its 3.5 seconds.
 
 See docs/labelling.md for what the gold sets do and do not cover.
 """
@@ -67,7 +67,7 @@ def mean(values):
 
 # Evidence support, and why it is not called faithfulness.
 #
-# The blueprint line for today says "faithfulness scoring". Faithfulness is a property of a
+# The plan for this said "faithfulness scoring". Faithfulness is a property of a
 # generated answer: does the text the model produced stay inside the evidence it was given.
 # This repo has no generator. There is no answer to score. Writing something called
 # faithfulness_score() that never sees a generated answer would be a fake metric with a

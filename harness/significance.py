@@ -1,7 +1,7 @@
 """Is the gap between two systems real, or is it one question?
 
 The ablation table has fused beating bm25 on recall@1 by 0.050. On ten questions that is
-half a question. Day 5 and day 6 both looked at that number and both refused to decide,
+half a question. I looked at that number twice and refused to decide both times,
 which is the correct instinct and a bad way to run a project. This module replaces the
 instinct with an interval.
 

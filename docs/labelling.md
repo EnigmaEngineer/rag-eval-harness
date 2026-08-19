@@ -1,8 +1,8 @@
 # How the gold chunks were labelled
 
-Day 5 needs recall@k and MRR. Both need to know which chunk is the right one. The golden set
+recall@k and MRR both need to know which chunk is the right one. The golden set
 only ever carried `source_docs`, a filename. That is a doc-level label. Every smoke test up to
-day 4 scored "did an expected source doc appear in the top 5", which is a proxy and was always
+the smoke checks scored "did an expected source doc appear in the top 5", which is a proxy and was always
 described as one.
 
 A doc-level label cannot tell a good retriever from a lucky one. `sql-performance-tuning.md` is

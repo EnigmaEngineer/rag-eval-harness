@@ -1,6 +1,6 @@
 {
   "commit": "a8a6b47",
-  "note": "rebuilt corpus: meta files filtered (ot-011), packer overlap-tail overflow fixed (ot-006), prime() warms a forward pass so the latency column is steady-state",
+  "note": "rebuilt corpus: meta files filtered out, packer overlap-tail overflow fixed, prime() warms a forward pass so the latency column is steady-state",
   "questions": 10,
   "systems": {
     "bm25": {

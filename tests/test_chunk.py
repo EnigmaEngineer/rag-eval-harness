@@ -64,7 +64,7 @@ def test_hard_split_handles_one_giant_line():
 
 
 def test_overlap_tail_never_pushes_a_chunk_over_budget():
-    """The day-2 build shipped 37 chunks over the 512 budget and the recorded cause was
+    """An early build shipped 37 chunks over the 512 budget and the recorded cause was
     wrong. It was not wordpiece non-additivity. The packer reset a full chunk to its overlap
     tail and then appended the unit that had just forced the flush, without re-checking the
     two together. Worst case is room plus the whole tail budget.

@@ -34,6 +34,6 @@ fetched corpus. Run it after fetching.
 
 ## Growing the set
 
-Twenty questions is thin. Target is 60 by day 5, added when a retrieval failure is found
+Twenty questions is thin. Target is 60, added when a retrieval failure is found
 that no existing question covers. Adding questions the current system already passes is
 how eval sets stop being useful.

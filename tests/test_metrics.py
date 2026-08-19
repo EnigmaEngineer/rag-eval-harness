@@ -57,7 +57,7 @@ def test_reciprocal_rank_uses_the_first_gold_chunk():
 
 def test_reciprocal_rank_truncates_before_scoring():
     ranked = ["a", "b", "c", "d", "e", "f", "g"]
-    # the day-4 q002 shape: the right chunk sits at rank 6, so mrr@5 and mrr@10 disagree.
+    # the q002 shape: the right chunk sits at rank 6, so mrr@5 and mrr@10 disagree.
     # a harness that does not say which k it used is not reproducible.
     assert metrics.reciprocal_rank(ranked, {"f"}, k=10) == 1 / 6
     assert metrics.reciprocal_rank(ranked, {"f"}, k=5) == 0.0

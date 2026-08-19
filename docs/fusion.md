@@ -21,7 +21,7 @@ Min-max scaling maps each list to 0 to 1, but the min and max come from the cand
 happened to retrieve for this query. The same document gets a different normalised score
 depending on what else came back. Z-score assumes a distribution the scores do not follow.
 Either way the mixing weight `a` becomes a hyperparameter you have to tune. You cannot tune
-it honestly until there is a metric to tune against. That metric is the day-5 harness. Setting
+it honestly until there is a metric to tune against. That metric is the eval harness. Setting
 `a` before then would be guessing dressed up as a number.
 
 ## What RRF does instead
@@ -39,7 +39,7 @@ nothing left on a raw scale. The two rankers become directly comparable by const
 `k` damps the head of each list so one ranker's rank-1 cannot swamp everything below it. Small
 `k` trusts the top ranks hard. Large `k` flattens the contribution curve toward uniform. 60 is
 the value from the original RRF paper (Cormack et al. 2009) and the common default.
-It is a parameter in `fuse.py`, so the day-5 harness can sweep it if the metrics ask for it,
+It is a parameter in `fuse.py`, so the harness can sweep it if the metrics ask for it,
 rather than it being baked in.
 
 ## The honest cost
@@ -50,6 +50,6 @@ score gap is real signal, weighted fusion could in principle beat RRF. The bet h
 across a query set the rank information is robust and the score scales are not, which is the
 same bet the RRF paper made and won against tuned weighted combinations.
 
-This is a bet, not a proof. The day-5 ablation measures dense only, BM25 only and fused on
+This is a bet, not a proof. The ablation measures dense only, BM25 only and fused on
 recall@k and MRR. If fused does not beat both inputs there, this decision gets revisited with
 weighted fusion as the alternative and a real number deciding it.

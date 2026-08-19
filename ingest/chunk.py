@@ -1,7 +1,7 @@
 """Structure-aware chunker for the Spark docs corpus.
 
 The plan in docs/chunking.md, made real. Three things drive the design and they all
-come from profiling the corpus on day 1, not from a blog post:
+come from profiling the corpus, not from a blog post:
 
   - Spark docs mix markdown headings, fenced code and HTML tables in the same file.
   - configuration.md alone is 21 HTML tables / 355 rows. Keeping tables whole is not an
@@ -27,7 +27,7 @@ CORPUS = ROOT / "data" / "corpus"
 OUT = ROOT / "data" / "chunks.jsonl"
 
 # bge-small-en-v1.5 takes 512 tokens. The budget follows the model, not the other way
-# round (that ordering was the mistake flagged on day 1). 64-token overlap so a fact that
+# round (getting that ordering backwards was the original mistake). 64-token overlap so a fact that
 # straddles a boundary still lands whole in one of the two neighbours.
 DEFAULT_BUDGET = 512
 DEFAULT_OVERLAP = 64
@@ -211,8 +211,8 @@ def _wrap_rows(header_txt, rows):
 def hard_split(unit, count, budget, overlap):
     """Last resort for a single unit that exceeds the budget on its own.
 
-    The day-1 plan was "never split a code block, let it be its own chunk". Profiling on
-    day 2 killed that: 40 code blocks and 11 tables run past 512 tokens, the worst at
+    The original plan was "never split a code block, let it be its own chunk". Profiling
+    killed that: 40 code blocks and 11 tables run past 512 tokens, the worst at
     15,757. bge-small truncates at 512, so an unsplit block would embed its first few
     hundred tokens and silently drop the rest. Worse than a clean window split. So blocks
     that fit stay whole. only the ones that would be truncated get windowed, on the
@@ -305,7 +305,7 @@ def pack(units, path, count, budget, overlap):
             # The overlap tail was being carried into the new chunk without being charged
             # against the unit that forced the flush. A unit is allowed to be as large as
             # room on its own, so tail + unit could reach room + tail_budget. That is the
-            # whole story behind the 37 chunks measured 3 to 62 tokens over 512 on day 2,
+            # whole story behind the 37 chunks measured 3 to 62 tokens over 512,
             # and every one of those overruns is under the 64-token tail budget. Overlap is
             # a nicety. Fitting inside the window the model actually reads is not. When the
             # two conflict the tail loses.

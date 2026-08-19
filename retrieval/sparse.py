@@ -139,7 +139,7 @@ def load():
 
 def smoke():
     """Same coarse proxy the dense path uses: for each golden question, does an expected
-    source doc land in the top-k? Not recall@k on gold chunks (that is day 5). The point
+    source doc land in the top-k? Not recall@k on gold chunks, which lives in the harness. The point
     today is to see where BM25 and dense disagree, q002 above all."""
     golden = ROOT / "evalset" / "golden.jsonl"
     rows = [json.loads(l) for l in golden.read_text(encoding="utf-8").splitlines() if l.strip()]

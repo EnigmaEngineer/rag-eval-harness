@@ -99,9 +99,9 @@ the top 5 was meant to be the cross-encoder reranker's job.
 
 ## The reranker did not recover q002
 
-Day 3 predicted the reranker would rescue q002. It did not. The correct chunk moved from
-fused rank 7 to reranked rank 6. Still outside the top 5. Measured on this machine with the
-rank trace in the day-4 audit.
+I added the reranker expecting it to rescue q002. It did not. The correct chunk moved from
+fused rank 7 to reranked rank 6. Still outside the top 5. Measured on this machine, and the
+full rank trace is in the ablation output.
 
 The reason is worth more than the fix. The question asks how to stop Spark making too many
 tiny tasks after a shuffle. The right answer coalesces post-shuffle partitions with adaptive
@@ -114,9 +114,9 @@ The reranker scored the correct chunk at minus 0.733 and ranked it sixth.
 So the cross-encoder rewarded surface topicality over the actual answer. It cannot tell
 "coalesce partitions" from "increase parallelism" when both sit in dense shuffle-tuning
 prose. This is the honest limit of a relevance model that was never trained on Spark. At chunk
-level the reranker leaves q002's correct chunk at rank 6, the same place day 4 found it. The
-exit condition was written in `docs/fusion.md`: if it loses to BM25 alone on real metrics,
-hybrid gets cut. The table below is that measurement.
+level the reranker leaves q002's correct chunk at rank 6, which is where the document level
+run left it too. I wrote the exit condition into `docs/fusion.md` before any of this ran.
+If it loses to BM25 alone on real metrics, hybrid gets cut. The table below is that measurement.
 
 ## The ablation table, and what it decided
 
@@ -163,7 +163,7 @@ every number here. It did not. Both sections below are that story.
 
 Two defects were fixed together so their effect could be measured in one pass. 37 chunks ran
 up to 62 tokens past the 512 budget, so bge silently truncated their tails. And the corpus
-included `README.md`, `index.md` and `404.md`, which are the docs site's own build
+had `README.md` and `index.md` and `404.md` in it. Those are the docs site's own build
 instructions, a link menu and an error page.
 
 Both are real bugs. The corpus went from 244 files and 3,228 chunks to 241 files and 3,212
@@ -297,8 +297,8 @@ The cause is that `spark.sql.autoBroadcastJoinThreshold` appears in three chunks
 explaining `BROADCAST` query hints and carries neither the 10 MB default nor the `-1` disable.
 It does not answer the question. Substring presence satisfied `support@5` anyway.
 
-This was visible in the day-5 table and went unnoticed for two days, because a column of means
-cannot show that two metrics disagree about the same question. Across all 40 rows `support@5`
+This sat in the ablation table across two runs before I spotted it, because a column of
+means cannot show that two metrics disagree about the same question. Across all 40 rows `support@5`
 returns 1.0 on 30 of them, and 7 of the 10 questions have one required string or none, which
 makes it close to a one-bit metric on most of the set. The ceiling is real and it does not
 bind.
@@ -325,11 +325,11 @@ nothing real and gets switched off within a week, which is worse than no gate. L
 Re-baselining requires a `--note`. That is the whole design. Numbers are allowed to move, but
 somebody has to type a reason, and it lands in the diff where a reviewer sees it.
 
-`.github/workflows/eval.yml` runs the unit tests on every push, then fetches the corpus,
+`.github/workflows/eval.yml` runs the unit tests on every push. Then it fetches the corpus,
 chunks it, builds BM25 and gates on it. **Dense, fused and rerank are not gated on every
-push.** Embedding 3,212 chunks with bge-small takes about 17 minutes on two cores, which is
-what a hosted runner gives you, and paying that per pull request to gate a ten-question eval
-is not a trade worth making. They run on `workflow_dispatch` instead. BM25 is also the system
+push.** Embedding 3,212 chunks with bge-small takes about 17 minutes on the two cores a
+hosted runner gives you. Paying that per pull request to gate a ten-question eval is not a
+trade worth making. They run on `workflow_dispatch` instead. BM25 is also the system
 hardest to beat in the table above, so it is the right thing to protect by default.
 
 CI writes to `reports/ci-results.jsonl` rather than the committed `reports/results.jsonl`.
@@ -348,7 +348,7 @@ measured with `perf_counter` inside the pipeline.
 | fuse | 0.1 |
 | rerank | 3567.7 |
 
-Those per-stage figures are from the day-4 pipeline run. The end-to-end column in the
+Those per-stage figures come from an earlier run. The end-to-end column in the
 ablation table above was re-measured on the rebuilt corpus and reads 23 ms for dense and 4412
 ms for rerank on the same hardware. Rerank latency moves several hundred milliseconds between
 runs on a 2-core box, so treat it as a magnitude and not a benchmark.
@@ -429,7 +429,7 @@ noise.
 Faithfulness is not measured, because there is no generator in this repo to be faithful or
 unfaithful. What `support@5` measures is whether the retrieved context even contains the
 evidence a correct answer would need. That is a ceiling on faithfulness rather than a
-measurement of it, and it is named accordingly. As of day 7 that ceiling is known not to bind.
+measurement of it, and it is named accordingly. That ceiling is known not to bind.
 It returns 1.0 on 30 of 40 rows, 7 of the 10 questions rest on a single required string, and on
 q005 it reports 1.0 while every system misses the answer. Treat it as a smoke alarm for missing
 evidence and not as a quality score. `harness/diagnose.py` is the check that catches it.

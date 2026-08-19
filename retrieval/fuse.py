@@ -9,11 +9,11 @@ scales, so combining the raw numbers means normalising them first. Every normali
 (min-max, z-score) is set by the batch it sees and shifts under you. RRF throws the scores
 away and keeps only the ranks. A term appearing at rank 3 in either list is worth the same
 no matter what its raw score was. That removes the one knob that would otherwise need tuning
-against a metric this project does not have until day 5.
+against a metric this project did not have when it was written.
 
 The RRF constant k damps the top ranks so a single list cannot dominate. 60 is the value
 from the original Cormack et al. 2009 paper and the common default. It is exposed so the
-day-5 harness can sweep it if the metrics say to.
+harness can sweep it if the metrics say to.
 
 `fuse` is pure and takes ranked id lists, so it is unit tested without a model. `search`
 wires the two real retrievers into it.
@@ -84,7 +84,7 @@ def search(query, k=5, depth=DEFAULT_DEPTH, dense_index=None, dense_meta=None,
 def smoke():
     """Run all three retrievers over the golden set and print a hit/miss line each, so the
     fusion result sits next to the two inputs it came from. Doc-level overlap at top-5, the
-    same coarse proxy the other two use. Real recall@k is day 5."""
+    same coarse proxy the other two use. Real recall@k lives in the harness."""
     from retrieval import dense as dense_mod
     from retrieval import sparse as sparse_mod
 

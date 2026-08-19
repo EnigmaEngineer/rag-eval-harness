@@ -7,12 +7,12 @@ results, then prints the ablation table.
 
 Why it is split into `run` and `report`, and why `run` is resumable.
 
-The cross-encoder costs about 3.5 seconds a question on two CPU cores (measured day 4). Ten
+The cross-encoder costs about 3.5 seconds a question on two CPU cores, measured. Ten
 questions of rerank alone is past the 45 second cap this sandbox puts on a single shell call.
 Four systems in one process is nowhere near possible. So `run` appends one JSON line per
 (system, question) to a results file and skips any pair already recorded. Kill it, rerun it,
 run it in slices, the file converges on the same content either way. `report` then reads the
-file and does the arithmetic. Same shape as the resumable index build from day 2, and for the
+file and does the arithmetic. Same shape as the resumable index build, and for the
 same reason.
 
 The four systems are the ablation the project promised. Dense only. Sparse only. Hybrid. Hybrid
@@ -38,7 +38,7 @@ RESULTS = ROOT / "reports" / "results.jsonl"
 SYSTEMS = ("dense", "bm25", "fused", "rerank")
 KS = (1, 3, 5, 10)
 DEPTH = 10          # how many hits each system returns, so recall@10 is measurable
-POOL = 50           # fused candidate depth the reranker scores over, same as day 4
+POOL = 50           # fused candidate depth the reranker scores over, same as the smoke
 
 # Config keys are exact strings, so they make a cheap check that the retrieved context really
 # carries the evidence. Same regex as evalset/validate.py uses for grounding.
@@ -122,8 +122,8 @@ def prime(systems, rv):
     timer starts.
 
     Constructing the model is not enough, and that cost two separate measurements to learn.
-    Day 4 timed a bge model load inside the first question and read 12049 ms against 19 ms
-    for the other nine. Loading moved out and the column looked right. Then the day-6 rebuild
+    An early run timed a bge model load inside the first question and read 12049 ms against
+    19 ms for the other nine. Loading moved out and the column looked right. Then a rebuild
     on a newer torch read 1606 ms for the first dense question and 19 ms for the rest, with
     the model already loaded. Torch allocates buffers and picks kernels on the first forward
     pass, not at construction. So the fix is a real forward pass, not a constructor call.
