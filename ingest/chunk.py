@@ -42,9 +42,6 @@ TITLE = re.compile(r"^(?:displayTitle|title):\s*(.+?)\s*$")
 TR = re.compile(r"<tr\b.*?</tr>", re.I | re.S)
 TH = re.compile(r"<th\b", re.I)
 
-
-# ---- token counting -------------------------------------------------------------------
-
 def bge_counter():
     """Real WordPiece counts from the model's own tokenizer. Downloads once, cached."""
     from transformers import AutoTokenizer
@@ -57,7 +54,6 @@ def bge_counter():
 
     return count
 
-
 def approx_counter():
     """Dependency-free fallback. Roughly words + punctuation. Labelled approximate
     everywhere it is used, because an estimate dressed as a measurement is the exact
@@ -68,9 +64,6 @@ def approx_counter():
         return len(token.findall(text))
 
     return count
-
-
-# ---- segmentation ---------------------------------------------------------------------
 
 def read_front_matter(lines):
     """Return (title, body_start_index). Spark docs open with a --- yaml block."""
@@ -84,7 +77,6 @@ def read_front_matter(lines):
         if m and title is None:
             title = m.group(1)
     return title, len(lines)  # unterminated front matter, treat whole file as consumed
-
 
 def segment(text):
     """Split a document into ordered blocks: heading, code, table or text.
@@ -151,11 +143,9 @@ def segment(text):
     flush_text()
     return title, blocks
 
-
-# ---- turning blocks into packable units -----------------------------------------------
+# turning blocks into packable units
 
 SENTENCE = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9`])")
-
 
 def text_units(block):
     """Sentence-ish units so packing and overlap land on real boundaries, not mid-word."""
@@ -170,7 +160,6 @@ def text_units(block):
         else:
             parts.extend(s for s in SENTENCE.split(para) if s)
     return [{"kind": "text", "text": p} for p in parts]
-
 
 def table_units(block, count, budget):
     """One or more chunks per HTML table, each = header row + as many body rows as fit.
@@ -200,13 +189,9 @@ def table_units(block, count, budget):
         units.append(_wrap_rows(header_txt, cur))
     return units
 
-
 def _wrap_rows(header_txt, rows):
     inner = "\n".join(([header_txt] if header_txt else []) + rows)
     return {"kind": "table", "text": f"<table>\n{inner}\n</table>"}
-
-
-# ---- packing --------------------------------------------------------------------------
 
 def hard_split(unit, count, budget, overlap):
     """Last resort for a single unit that exceeds the budget on its own.
@@ -224,7 +209,6 @@ def hard_split(unit, count, budget, overlap):
         return [unit]
     return [{"kind": unit["kind"], "text": t}
             for t in _window(unit["text"], count, budget, overlap)]
-
 
 def _window(text, count, budget, overlap, seps=("\n", " ", "")):
     for depth, sep in enumerate(seps):
@@ -258,7 +242,6 @@ def _window(text, count, budget, overlap, seps=("\n", " ", "")):
             out.append(join.join(cur))
         return out
     return [text]  # single character, genuinely unsplittable
-
 
 def pack(units, path, count, budget, overlap):
     """Greedy pack a run of units under one heading path into budget-sized chunks.
@@ -318,7 +301,6 @@ def pack(units, path, count, budget, overlap):
     emit()
     return chunks
 
-
 def _overlap_tail(units, count, overlap):
     if overlap <= 0:
         return []
@@ -332,7 +314,6 @@ def _overlap_tail(units, count, overlap):
         tail.insert(0, u)
         cost += c
     return tail
-
 
 def chunk_doc(name, text, count, budget, overlap):
     title, blocks = segment(text)
@@ -372,7 +353,6 @@ def chunk_doc(name, text, count, budget, overlap):
         out.append(c)
     return out
 
-
 def run(budget, overlap, which):
     if not CORPUS.is_dir():
         raise SystemExit("no corpus. run: python -m ingest.fetch_corpus")
@@ -401,7 +381,6 @@ def run(budget, overlap, which):
     print(f"  over budget ({budget}): {oversized}")
     print("  by kind: " + ", ".join(f"{k} {v}" for k, v in sorted(kinds.items())))
 
-
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--budget", type=int, default=DEFAULT_BUDGET)
@@ -409,7 +388,6 @@ def main():
     ap.add_argument("--tokenizer", choices=["bge", "approx"], default="bge")
     args = ap.parse_args()
     run(args.budget, args.overlap, args.tokenizer)
-
 
 if __name__ == "__main__":
     main()
