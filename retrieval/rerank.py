@@ -158,7 +158,7 @@ def smoke(pool=50):
     Fused top-5 and reranked top-5 are scored over the *same* fused pool, so any difference
     is the reranker's doing and not a different candidate set. On 2 CPU cores the cross
     encoder runs ~3.5s a question, so the full ten-question pass is ~40s. Prints flush per
-    question so progress shows even when it is slow. Syed's laptop has no per-call cap."""
+    question so progress shows even when it is slow. My laptop has no per-call cap."""
     from retrieval import dense as dense_mod
     from retrieval import sparse as sparse_mod
 
